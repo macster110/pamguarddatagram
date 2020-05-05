@@ -29,9 +29,9 @@ binaryFolder = 'E:\Google Drive\SMRU_research\Gill nets 2016-20\SoundTrap_4c\201
 
 datatype=2; % the data type 1 for clicks, 2 for whistles. 
 sR = 48000; %sample rate in samples per second. 
-timebin =60; % seconds
+timebin =60; % the time bin in which to calculate each datagram line in seconds. 
 
-fftLength = 1024; 
+fftLength = 1024; % the fft length used in PAMGuard in samples (only required for whistles)
 
 %% create the datagram
 [datagram, summarydata, metadata] = loaddatagram(binaryFolder,datatype,...
