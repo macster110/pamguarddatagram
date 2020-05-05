@@ -13,9 +13,9 @@ PAMGuard binary files can be loaded into PAMGuard where a user can access the mu
 ## Usage
 You must first have analysed some data in PAMGuard and have downloaded the PAMGuard MATLAB library. This should be added to your MATLAB path. 
 
-There are two inputs to the datagram folder; a path to the binary file folder and a datatype. dataype is an integer number and indictaes which data stream you wish to analyse. Current datatypes are:
+There are two inputs to the datagram folder; a path to the binary file folder and a ```datatype```. ```dataype``` is an integer number and indictaes which data stream you wish to analyse. Current ```datatypes``` are:
 
-- 1 -> Click detections from the Click Detector Module
+- 1 -> Click detections from the Click Detector Module.
 - 2 -> Whislte and Moan detections from the Whistle and Moan detector Module. 
 - 3 -> Noise Band monitor.
 
