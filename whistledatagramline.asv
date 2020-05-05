@@ -1,0 +1,41 @@
+function [dataline, line] = whistledatagramline(whistles, fftLength)
+%WHISTLEDATAGRAMLINE Summary of this function goes here
+%   Shows a frequency histogram of whistle contours. 
+
+meanfft = nan(fftLength/1, 1); 
+
+
+for i=1:length(whistles)
+    
+
+end
+
+hold on;
+contoursdata = zeros(1, 200000); % pre allocate an array 
+
+n=1; 
+for i=1:length(tones)
+    for j=1:length(tones(i).contour)
+        contour=tones(i).contour(j);
+        contourwidth=tones(i).contour;
+
+        % want to extract all spectrum bins in which the contour was present
+        contourdat=1:contourwidth -contourwidth/2 + contour; 
+        
+        contoursdata(n:n+length(contourdat)) = contourdat; 
+        n=n+length(contourdat)+1; % 
+    end
+end
+
+contoursdata=contoursdata(1:n-1); 
+
+
+%now bin the contours into a histogram
+histcounts(contoursdata); 
+
+0:1:
+
+
+
+end
+
