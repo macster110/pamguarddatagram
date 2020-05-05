@@ -12,12 +12,12 @@ An example of a years worth of data analysed using PAMGuard tonal and click dete
 PAMGuard binary files can be loaded into PAMGuard where a user can access the multide of interactive displays or accessed through [R] (https://github.com/TaikiSan21/PamBinaries) and [MATLAB](https://sourceforge.net/projects/pamguard/files/Matlab/) libraries for more bespoke analysis. pamguardDatagram is a set functions which recreates the PAMGuard datagram showing a summary of months or even years of acosutic data. 
 
 ## Usage
-You must first have analysed some data in PAMGuard and have downloaded the PAMGuard MATLAB library. This should be added to your MATLAB path. 
+This requires the PAMGuard [MATLAB library](https://sourceforge.net/projects/pamguard/files/Matlab/) which should be added to your MATLAB path. Building a datagram also requires acoustic data to have been analysed in PAMGuard and saved to PAMGuard binary files (see pamguard help -> Binary File Module). 
 
-There are two inputs to the datagram folder; a path to the binary file folder and a ```datatype```. ```dataype``` is an integer number and indictaes which data stream you wish to analyse. Current ```datatypes``` are:
+There are two inputs to the datagram folder; a path to the binary file folder and a ```datatype```. ```dataype``` is an integer number and indictaes which data stream you wish to analyse. Current enabled ```datatypes``` are:
 
 - 1 -> Click detections from the Click Detector Module.
-- 2 -> Whislte and Moan detections from the Whistle and Moan detector Module. 
+- 2 -> Whistle and Moan detections from the Whistle and Moan detector Module. 
 - 3 -> Noise Band monitor.
 
 ## Example code 
