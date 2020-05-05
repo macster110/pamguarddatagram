@@ -1,4 +1,4 @@
-function [datagramline, summaryline] = whistledatagramline(tones, fftLength)
+function [datagramline, summaryline, metadata] = whistledatagramline(tones, fftLength)
 %WHISTLEDATAGRAMLINE calculatesa  datgram line for a group of whisltes.
 %   [DATAGRAMLINE, SUMMARYLINE] = WHISTLEDATAGRAMLINE(TONES, FFTLENGTH)
 %   calculates a datagram line for a group of tonal sounds detected by the
@@ -18,6 +18,12 @@ hold on;
 contoursdata = nan(1, 200000); 
 slopdatas = nan(1, 200000);
 cwidthdatas = nan(1,200000); 
+
+if nargout >= 3
+    metadata.datagramname = 'Number of contours'; 
+    metadata.summarydatnames = {'Number contours', 'Mean slope', 'Median slope',...
+        'Std Slope', 'Mean Contour Width', 'Median contour width', 'Std contour width' }; 
+end
 
 n=1;
 nslope = 1;
@@ -43,11 +49,11 @@ for i=1:length(tones)
     
     % now extra whistle info .Slope data
     slope= diff(tones(i).contour);
-    slopdatas(nslope:(nslop+length(slope)-1))= slope;
-    nslope= nslope + length(slop); 
+    slopdatas(nslope:(nslope+length(slope)-1))= slope;
+    nslope= nslope + length(slope); 
     
     cwidth= diff(tones(i).contWidth);
-    cwidthdatas(ncwidth:(nslop+length(cwidth)-1)) = cwidth;
+    cwidthdatas(ncwidth:(ncwidth+length(cwidth)-1)) = cwidth;
     ncwidth= ncwidth + length(cwidth); 
     
    

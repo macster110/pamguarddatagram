@@ -1,7 +1,7 @@
 function [s, c] = plotdatagram(datagram, metadata, varargin)
 %PLOTDATAGRAM Plots a datagram
 %   S = PLOTDATAGRAM(DATAGRAM, SR) plots a DATAGRAM on frequency time
-%   surface. 
+%   surface. METADAta contain info on the datagram. 
 
 usekHz= true;
 maxsurfacesize = 5000; 
@@ -86,7 +86,13 @@ end
 
 
 s = surf(X, Y, datagram, 'EdgeColor', 'none');
-ylabel('Frequency (kHz)')
+
+if (usekHz)
+    ylabel('Frequency (kHz)')
+else
+    ylabel('Frequency (Hz)')
+end
+
 xlabel('Time')
 datetick x
 xlim([minmaxtime(1), minmaxtime(2)])
@@ -99,6 +105,7 @@ ylim(freqlimits);
 
 colormap Jet
 c = colorbar;
+c.Label.String = metadata.datagramname; 
 view([0,90])
 
 cmap =  colormap('Jet'); 

@@ -1,4 +1,4 @@
-function [datagramline,summarydata] = clickdatagramline(clicks)
+function [datagramline,summarydata, metadata] = clickdatagramline(clicks)
 %CLICKDATAGRAMLINE Creates a datagram line and summary data of a group of
 %clicks.
 %   [DATAGRAMLINE,SUMMARYDATA] = CLICKDATAGRAMLINE(CLICKS, DATABIN)
@@ -11,6 +11,17 @@ function [datagramline,summarydata] = clickdatagramline(clicks)
 fftsize = 256;
 
 nClassifiers  = 5; %maximum number of classifiers to look for e.g. any type from 1 to nClassifiers 
+
+if nargout >= 3
+    metadata.datagramname = 'Average spectrum (linear)'; 
+    metadata.summarydatnames = {'Mean amplitude (linear -1 -> 1)', 'Median amplitude (linear -1 -> 1)', ...
+        'Std amplitude (linear -1 -> 1)', 'No. Unclassified Clicks', 'No. clicks classified clicks',...
+        'No. clicks classiifcation type = 1',...
+        'No. clicks classiifcation type = 2',...
+        'No. clicks classiifcation type = 3',...
+        'No. clicks classiifcation type = 4',...
+        'No. clicks classiifcation type = 5'};
+end
 
 meanfft = zeros(fftsize/2+1, 1); 
 
@@ -42,12 +53,14 @@ summarydata(2) = median(ppamp);
 summarydata(3) = std(ppamp); 
 
 %% now classification ratio
+numunclssfd = sum(types==0);
 numclssfd = sum(types==0);
 
-summarydata(4) = numclssfd; 
+summarydata(4) = numunclssfd; 
+summarydata(5) = numclssfd; 
 
 for i=1:nClassifiers
-    summarydata(4+i) = sum(types==i);
+    summarydata(5+i) = sum(types==i);
 end
 
 end

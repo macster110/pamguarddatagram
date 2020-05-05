@@ -171,14 +171,18 @@ for i=1:length(timebins)-1
     disp(['Loading datagram: ' num2str(100*i/length(timebins)) '%' ' No. data units: ' num2str(length(timebinunits))]);
     
     %pre allocate the arrays on the first iteration for speed.
-    
-    % get the datagram line and the sumamry data.
-    [adatagram, asummarydat]= getdatagramlin(timebinunits);
+
         
     if (i==1)
+        % get the metadata on the first run so that no recalculated all the
+        % time. 
+        [adatagram, asummarydat, metadata]= getdatagramlin(timebinunits);
         % pre allocate the arrays for speed once we know the sizes to use.
         datagram=nan(length(adatagram), length(timebins));
         summarydat=zeros(length(timebins), length(asummarydat));
+    else
+        % get the datagram line and the sumamry data.
+        [adatagram, asummarydat]= getdatagramlin(timebinunits);
     end
     
     % get the datagram line and the sumamry data.
@@ -189,7 +193,9 @@ end
 
 minmaxtime = [startime, endtime];
 
+%add to meta data. 
 metadata.minmaxtime = minmaxtime;
+metadata.datatype = datatype;
 
 % end
 

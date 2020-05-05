@@ -6,7 +6,7 @@ file = 'E:\Google Drive\SMRU_research\Gill nets 2016-20\SoundTrap_4c\20191114_Co
 [tones, wmheader]= loadPamguardBinaryFile(file); 
 
 fftLength = 1024; 
-[dataline, line] = whistledatagramline(tones, fftLength); 
+[dataline, line, metadata] = whistledatagramline(tones, fftLength); 
 
 plot(dataline)
 
