@@ -46,7 +46,7 @@ metadata.sR = sR; % need add sample rate to the metadata
 The output can be plotted using ```plotdatagram```
 
 <center><img src="resources/pgdatagram_example2.png" width="1024"></center>
-A datagram calculated in MATLAB: this is the same data as the second from bottom panel in the first figure. 
+A whistle datagram calculated using pamguardDatagram: this is the same data as the second from bottom panel in the first figure. 
 
 Each datagram also has an associated _ _summarydata_ _ variable. This holds bespoke metrics for each datagram bin. For example a click datagram has the number of classified and unclassified clicks and recieved amplitude distributions. The descriptions of the data contained in _ _summarydata_ _ can be found in the _ _metadata_ _ output. 
 
