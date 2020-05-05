@@ -1,6 +1,6 @@
 # pamguardDatagram
 
-Generate datagrams from data processed in [PAMGuard](www.pamguard.org)
+Generate datagrams from data processed in [PAMGuard](https://www.pamguard.org/)
 
 ## Introduction 
 PAMGuard is an open source acoustic analysis toolbox designed to detect, classify and localise the vocalisations of soniferious marine mammals (baleen whales, sperm whales, dolphins, river dolphins, beaked whales, porpoise) and some terrestrial species such as bats. PAMGuard can analyse years of acoustic data and store relevant detections, classifications and metrics such as noise/long term spectral averages etc. in a highly compressed "binary file" format. This means that terabytes of acoustic data can be reduced by 99.9% in size whilst retaining sufficient information to allow manual analysts to inspect data and re-run classification algorithms or in real time operation allows users to store only relevant data. 
