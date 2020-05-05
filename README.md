@@ -21,7 +21,7 @@ There are two inputs to the datagram folder; a path to the binary file folder an
 
 ## Example code 
 
-```matlab
+```Matlab
 % path to a binary file folder
 binaryFolder = 'E:\Google Drive\SMRU_research\Gill nets 2016-20\SoundTrap_4c\20191114_Cornwall_AK627_H3\67170312\Binary\20191115\';
 
