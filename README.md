@@ -36,3 +36,14 @@ timebin =60; % seconds
 %% plot the datagram 
 [s] = plotdatagram(datagram, metadata, 'UseKHz', true); 
 ```
+
+## Output
+The output can be plotted using ```plotdatagram```
+
+<center><img src="resources/pgdatagram_example2.png" width="1024"></center>
+Datagram calculated in MATLAB: this is the same data as the second from bottom panel in the first figure. 
+
+Each datagram also has an ssociated _ _summarydata_ _ variable. This holds bespoke metrics for each datagram bin. For example a click datagram has the number of classified and unclassified clicks and recieved amplitude distributions. The descriptions of the data contained in _ _summarydata_ _ can be found in the _ _metadata_ _ output. 
+
+## Versions
+Verison 1 - 05/05/2020 first realease
