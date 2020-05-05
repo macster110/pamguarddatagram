@@ -9,7 +9,7 @@ PAMGuard is an open source acoustic analysis toolbox designed to detect, classif
 An example of a years worth of data analysed using PAMGuard tonal and click detectors alongside a long term spectral average. 
 
 ## pamguardDatagram
-PAMGuard binary files can be loaded into PAMGuard where a user can access the multide of interactive displays or accessed through [R] (https://github.com/TaikiSan21/PamBinaries) and [MATLAB](https://sourceforge.net/projects/pamguard/files/Matlab/) libraries for more bespoke analysis. pamguardDatagram is a set of MATLAB functions which both recreates the PAMGuard datagram showing a summary of months or even years of acoustic data and compiles a set of useful summary metrics for further data analysis. 
+PAMGuard binary files can be loaded into PAMGuard where a user can access the multide of interactive displays or accessed through [R](https://github.com/TaikiSan21/PamBinaries) and [MATLAB](https://sourceforge.net/projects/pamguard/files/Matlab/) libraries for more bespoke analysis. pamguardDatagram is a set of MATLAB functions which both recreates the PAMGuard datagram showing a summary of months or even years of acoustic data and compiles a set of useful summary metrics for further data analysis. 
 
 ## Usage
 pamguardDatagram requires the PAMGuard [MATLAB library](https://sourceforge.net/projects/pamguard/files/Matlab/) which should be added to your MATLAB path. Building a datagram also requires acoustic data to have been analysed in PAMGuard and saved to PAMGuard binary files (see pamguard help -> Binary File Module). 
