@@ -3,11 +3,26 @@ function [datagramline, summaryline] = whistledatagramline(tones, fftLength)
 %   [DATAGRAMLINE, SUMMARYLINE] = WHISTLEDATAGRAMLINE(TONES, FFTLENGTH)
 %   calculates a datagram line for a group of tonal sounds detected by the
 %   PAMGuard Whistle and Moan Detector module.
+%   SUMMARYLINE returns 7 metrics. 
+% * Total of tones
+% * The mean slope . Slope is the change frequency in units of freq/time
+%   bins. 
+% * The median slope;
+% * The standard deviation in slope
+% * The mean contour width in freq bin units
+% * The median contour width
+% * The std contour width. 
 
 hold on;
-contoursdata = nan(1, 200000); % pre allocate an array
+% pre allocate an arrays
+contoursdata = nan(1, 200000); 
+slopdatas = nan(1, 200000);
+cwidthdatas = nan(1,200000); 
 
 n=1;
+nslope = 1;
+ncwidth = 1;
+
 for i=1:length(tones)
     for j=1:length(tones(i).contour)
         contour=tones(i).contour(j);
@@ -26,11 +41,22 @@ for i=1:length(tones)
         end
     end
     
-    % now extra whistle info.
+    % now extra whistle info .Slope data
+    slope= diff(tones(i).contour);
+    slopdatas(nslope:(nslop+length(slope)-1))= slope;
+    nslope= nslope + length(slop); 
     
+    cwidth= diff(tones(i).contWidth);
+    cwidthdatas(ncwidth:(nslop+length(cwidth)-1)) = cwidth;
+    ncwidth= ncwidth + length(cwidth); 
+    
+   
 end
 
+%trim arrays to get rid of trialling ends. 
 contoursdata=contoursdata(1:n-1);
+slopdatas=slopdatas(1:nslope-1);
+cwidthdatas=cwidthdatas(1:ncwidth-1);
 
 %now bin the contours into a histogram
 edges = 0:1:fftLength/2;
@@ -45,9 +71,12 @@ end
 
 % now the summary data
 summaryline(1) = length(tones); % the number of tones.
-% mean, median and std slope
-% mean median and std width
-
+summaryline(2) = mean(slopdatas); % mean in slope
+summaryline(3) = median(slopdatas); % medina in slope
+summaryline(4) = std(slopdatas); % std in slope
+summaryline(5) = mean(cwidthdatas); % mean in contour width
+summaryline(6) = median(cwidthdatas); % median in contour width
+summaryline(7) = std(cwidthdatas); % std in contour width
 
 % end
 

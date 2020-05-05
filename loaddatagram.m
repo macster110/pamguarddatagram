@@ -11,7 +11,22 @@ function [datagram, summarydat, metadata] = loaddatagram(folder, datatype, varar
 %%
 % * 1 - Click detections from Click Detector module.
 % * 2 - Whistle and moan detections from Whistle and Moan Detector module.
+%       Note that this assumes an FFT length of 1024 samples. This can be
+%       changed by 'FFTLength' argument using VARARGIN.
 % * 3 - Noise Band monitor detections.
+% 
+%  [DATAGRAM, SUMMARYDATA] = LOADDATAGRAM(FOLDER,DATATYPE, VARARGIN) allows
+%  additional inpout arguments via VARARGIN. Arguments are:
+%
+% * 'FFTLength' - the fft length in samples (required for datatype == 2).
+%   Default is 1024; 
+% * 'TimeBin' - the time bin in seconds for one datagram line. The default is 60
+%   seconds 
+% * 'FileMask' - a custom file mask if more than one of the same module is
+%   used. If this is the case then the unique name of data units for one
+%   module is required e.g. 'WhistlesMoans_Moan_Detector_Contours_*'
+
+
 
 timebin = 60; %the time bin in seconds
 fftLength = 1024; %the fft length
