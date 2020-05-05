@@ -1,39 +1,19 @@
+% binary data folder
+% binaryFolder = 'E:\Google Drive\SMRU_research\Gill nets 2016-20\SoundTrap_4c\20191114_Cornwall_AK627_H3\67170312\Binary\';
+binaryFolder='D:\Greenland\Tuttulipaluk2016-17\pamguard\binary\'; 
 
-binaryFolder = 'E:\Google Drive\SMRU_research\Gill nets 2016-20\SoundTrap_4c\20191114_Cornwall_AK627_H3\67170312\Binary\20191115\';
+datatype=2; % the data type 1 for clicks, 2 for whistles. 
+sR = 576000; %sample rate in samples per second. 
+timebin =600; % seconds
 
-datatype=1;
-sR = 576000;
-timebin =60; % seconds
+fftLength = 1024; 
 
-%% load the datagram.
-[datagram, summarydata, minmaxtime] = loaddatagram(binaryFolder,datatype, timebin);
+%% create the datagram
 
-%% Plot the datagram
-usekHz= true;
+[datagram, summarydata, metadata] = loaddatagram(binaryFolder,datatype,...
+    'TimeBin', timebin, 'FileMask', 'WhistlesMoans_Moan_Detector_Contours_*' );
 
-[X, Y] = meshgrid(...
-    linspace(minmaxtime(1), minmaxtime(2), length(datagram(1,:))),...
-    linspace(0, sR/2, length(datagram(:,1))));
-
-if usekHz
-    Y=Y./1000;
-end
-
-s = surf(X, Y, 20*log10(datagram), 'EdgeColor', 'none');
-ylabel('Frequency (kHz)')
-xlabel('Time')
-datetick x
-xlim([minmaxtime(1), minmaxtime(2)])
-
-freqlimits=[0, sR/2];
-if usekHz
-    freqlimits=freqlimits/1000.;
-end
-ylim(freqlimits); 
-
-
-colormap Jet
-colorbar
-view([0,90])
-
+%% plot the datagram
+metadata.sR = sR; % need add sample rate to the metadata
+[s] = plotdatagram(datagram, metadata, 'UsekHz', true); 
 

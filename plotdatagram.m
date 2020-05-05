@@ -3,8 +3,17 @@ function [s] = plotdatagram(datagram, metadata, varargin)
 %   S = PLOTDATAGRAM(DATAGRAM, SR) plots a DATAGRAM on frequency time
 %   surface. 
 
-
 usekHz= true;
+
+iArg = 0;
+while iArg < numel(varargin)
+    iArg = iArg + 1;
+    switch(varargin{iArg})
+        case 'UsekHz'
+            iArg = iArg + 1;
+            usekHz = varargin{iArg};
+    end
+end
 
 sR= metadata.sR;
 minmaxtime = metadata.minmaxtime; 
@@ -29,12 +38,9 @@ if usekHz
 end
 ylim(freqlimits); 
 
-
 colormap Jet
 colorbar
 view([0,90])
-
-
 
 end
 

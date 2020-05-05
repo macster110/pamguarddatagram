@@ -1,4 +1,4 @@
-function [datagram, summarydat, minmaxtime] = loaddatagram(folder, datatype, timebin, varargin)
+function [datagram, summarydat, metadata] = loaddatagram(folder, datatype, varargin)
 %LOADDATAGRAM Creates a datagram from PAMGuard binary data
 %   [DATAGRAM, SUMMARYDATA] = LOADDATAGRAM(FOLDER,DATATYPE) generates a
 %   datagram from a a FOLDER of PAMGaurd binary files along with
@@ -11,23 +11,50 @@ function [datagram, summarydat, minmaxtime] = loaddatagram(folder, datatype, tim
 %%
 % * 1 - Click detections from Click Detector module.
 % * 2 - Whistle and moan detections from Whistle and Moan Detector module.
-% * 3 - Noise Band monitor detections. 
+% * 3 - Noise Band monitor detections.
 
-filerejectmask=[]; 
+timebin = 60; %the time bin in seconds
+fftLength = 1024; %the fft length
+filemaskoverride= []; % overrides the default fuilemask if not empty. 
+
+iArg = 0;
+while iArg < numel(varargin)
+    iArg = iArg + 1;
+    switch(varargin{iArg})
+        case 'FFTLength'
+            iArg = iArg + 1;
+            fftLength = varargin{iArg};
+        case 'TimeBin'
+            iArg = iArg + 1;
+            timebin = varargin{iArg};
+        case 'FileMask'
+            iArg = iArg + 1;
+            filemaskoverride = varargin{iArg};
+    end
+end
+
+
+filerejectmask=[];
 % define the correct data function.
 switch (datatype)
     case 1
-        %Clicks
+        % Clicks
         getdatagramlin = @(x) clickdatagramline(x);
         filemask='Click_Detector_*.pgdf';
-        filerejectmask ='Trigger'; 
+        filerejectmask ='Trigger';
     case 2
-        getdatagramlin = @(x) clickdatagramline(x);
-        filemask='WhistleMoans_*.pgdf';
+        % Whistles and Moans
+        % Note: requires an FfftLength
+        getdatagramlin = @(x) whistledatagramline(x, fftLength);
+        filemask='WhistlesMoans_*.pgdf';
 end
 
-%can have a csutom file mask if necessary.
-%%TODO
+%custom file mask if the same modules are used 
+if (~isempty(filemaskoverride))
+   filemask = filemaskoverride; 
+end
+
+disp('Counting PAMGuard binary files and loading names...');
 
 % first open all the file headers
 d = dirsub(folder, filemask);
@@ -36,17 +63,17 @@ if ~isempty(filerejectmask)
     indexOK = [];
     for i=1:length(d)
         if ~contains(d(i).name, filerejectmask)
-            indexOK=[indexOK i]; 
+            indexOK=[indexOK i];
         end
     end
-    d=d(indexOK); 
+    d=d(indexOK);
 end
 
 if (isempty(d))
-   disp('THERE ARE NO BINARY FILES AT THIS LOCATION? CHECK FILE PATH...');
-   datagram=[]; 
-   summarydat=[]; 
-   minmaxtime=[]; 
+    disp('THERE ARE NO BINARY FILES AT THIS LOCATION? CHECK FILE PATH...');
+    datagram=[];
+    summarydat=[];
+    metadata.minmaxtime=[];
 end
 
 
@@ -66,8 +93,12 @@ for i = 1:numel(d)
     if (i==numel(d))
         %load the last file to check the final date
         [pgdata, ~] = loadPamguardBinaryFile(d(i).name);
-        dates = [pgdata.date];
-        lastfileunit =  max(dates);
+        if (~isempty(pgdata))
+            dates = [pgdata.date];
+            lastfileunit =  max(dates);
+        else
+            lastfileunit = max(filestarttimes); 
+        end
     end
 end
 
@@ -99,19 +130,24 @@ for i=1:length(timebins)-1
         
         currnetfileN = currnetfileN +1;
         
-        disp(['Loading PG file: ' d(currnetfileN).name]);
+        [filepath, name, ext] = fileparts(d(currnetfileN).name);
+        
+        disp(['Loading PG file: ' name]);
+        
         [pgdata, ~] = loadPamguardBinaryFile(d(currnetfileN).name);
         
-        times = [pgdata.date];
-        
-        % load from current file
-        index = times>timebins(i) & times<timebins(i)+timebinnum;
-        
         try
-            %If binary format has, for some reason, changed, then there may
-            %be a switch to a slightly different format - this will catch
-            %the switch and simply return a timebin with no data.
-            timebinunits = [timebinunits pgdata(index)];
+            if (~isempty(pgdata))
+                times = [pgdata.date];
+                
+                % load from current file
+                index = times>timebins(i) & times<timebins(i)+timebinnum;
+                
+                %If binary format has, for some reason, changed, then there may
+                %be a switch to a slightly different format - this will catch
+                %the switch and simply return a timebin with no data.
+                timebinunits = [timebinunits pgdata(index)];
+            end
         catch e
             disp(e)
         end
@@ -119,20 +155,26 @@ for i=1:length(timebins)-1
     
     disp(['Loading datagram: ' num2str(100*i/length(timebins)) '%' ' No. data units: ' num2str(length(timebinunits))]);
     
-    %pre allocate the arrays
+    %pre allocate the arrays on the first iteration for speed.
+    
+    % get the datagram line and the sumamry data.
+    [adatagram, asummarydat]= getdatagramlin(timebinunits);
+        
     if (i==1)
-        % get the datagram line and the sumamry data.
-        [adatagram, asummarydat]= getdatagramlin(timebinunits);
-        % pre allocate the arrays for speed once we know the sizes to use. 
-        datagram=nan(length(adatagram), length(timebins)); 
-        summarydat=zeros(length(timebins), length(asummarydat)); 
-    else
-        % get the datagram line and the sumamry data.
-        [datagram(:,i), summarydat(i,:)]= getdatagramlin(timebinunits);
+        % pre allocate the arrays for speed once we know the sizes to use.
+        datagram=nan(length(adatagram), length(timebins));
+        summarydat=zeros(length(timebins), length(asummarydat));
     end
+    
+    % get the datagram line and the sumamry data.
+    datagram(:,i) = adatagram; 
+    summarydat(i,:)= asummarydat;
+    
 end
 
 minmaxtime = [startime, endtime];
+
+metadata.minmaxtime = minmaxtime;
 
 % end
 
