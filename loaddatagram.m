@@ -27,7 +27,6 @@ function [datagram, summarydat, metadata] = loaddatagram(folder, datatype, varar
 %   module is required e.g. 'WhistlesMoans_Moan_Detector_Contours_*'
 
 
-
 timebin = 60; %the time bin in seconds
 fftLength = 1024; %the fft length
 filemaskoverride= []; % overrides the default fuilemask if not empty. 
@@ -62,6 +61,10 @@ switch (datatype)
         % Note: requires an FfftLength
         getdatagramlin = @(x) whistledatagramline(x, fftLength);
         filemask='WhistlesMoans_*.pgdf';
+    case 3
+        % Noise band monitor
+        getdatagramlin = @(x) noisedatagramline(x);
+        filemask='Noise_Band_*.pgdf';
 end
 
 %custom file mask if the same modules are used 
@@ -89,6 +92,7 @@ if (isempty(d))
     datagram=[];
     summarydat=[];
     metadata.minmaxtime=[];
+    return; 
 end
 
 
@@ -127,11 +131,14 @@ disp(['Loading data between ' datestr(startime) ' and ' datestr(endtime)]);
 timebinnum = timebin/60/60/24; % the time bin in days arather than seconds
 timebins=startime:timebinnum:endtime;
 
-%KEY ASSUMPTION HERE - BINARY FILESARE IN SEQUENTIAL ORDER
+%KEY ASSUMPTION HERE - BINARY FILES ARE IN SEQUENTIAL ORDER
 [pgdata, ~] = loadPamguardBinaryFile(d(1).name);
 currnetfileN = 1;
 %the times in datenum
 times = [pgdata.date];
+
+% true untill the first successful datagram line is created. 
+newdatagram= true; 
 
 for i=1:length(timebins)-1
     timebinunits=[];
@@ -141,11 +148,11 @@ for i=1:length(timebins)-1
     timebinunits = [timebinunits pgdata(index)];
     
     %check if a new file needs to be loaded.
-    while max(times)<timebins(i)+timebinnum
+    while max(times)<timebins(i)+timebinnum && currnetfileN<length(d)
         
         currnetfileN = currnetfileN +1;
         
-        [filepath, name, ext] = fileparts(d(currnetfileN).name);
+        [~, name, ~] = fileparts(d(currnetfileN).name);
         
         disp(['Loading PG file: ' name]);
         
@@ -170,24 +177,28 @@ for i=1:length(timebins)-1
     
     disp(['Loading datagram: ' num2str(100*i/length(timebins)) '%' ' No. data units: ' num2str(length(timebinunits))]);
     
-    %pre allocate the arrays on the first iteration for speed.
-
-        
-    if (i==1)
+    %pre allocate the arrays on the first iteration for speed
+    if (newdatagram)
         % get the metadata on the first run so that no recalculated all the
-        % time. 
+        % time.
         [adatagram, asummarydat, metadata]= getdatagramlin(timebinunits);
-        % pre allocate the arrays for speed once we know the sizes to use.
-        datagram=nan(length(adatagram), length(timebins));
-        summarydat=zeros(length(timebins), length(asummarydat));
+        if (~isempty(adatagram))
+            % pre allocate the arrays for speed once we know the sizes to use.
+            datagram=nan(length(adatagram), length(timebins));
+            summarydat=zeros(length(timebins), length(asummarydat));
+            newdatagram = false;
+        end
     else
         % get the datagram line and the sumamry data.
         [adatagram, asummarydat]= getdatagramlin(timebinunits);
     end
     
-    % get the datagram line and the sumamry data.
-    datagram(:,i) = adatagram; 
-    summarydat(i,:)= asummarydat;
+    if (~isempty(adatagram))
+        % get the datagram line and the sumamry data.
+        % if empty should be zeros
+        datagram(:,i) = adatagram;
+        summarydat(i,:)= asummarydat;
+    end
     
 end
 
@@ -196,6 +207,30 @@ minmaxtime = [startime, endtime];
 %add to meta data. 
 metadata.minmaxtime = minmaxtime;
 metadata.datatype = datatype;
+metadata.freqbins = []; %definet he frequency bins if they are not evenly distributed between 0 and sR
+
+% add any additonal data metadata 
+switch (datatype)
+    case 1
+        % Clicks
+    case 2
+        % Whistles
+    case 3
+        % Noise band monitor
+        %load up header to get frequency bins. 
+        [~, header]= loadPamguardBinaryFile(d(1).name);
+        freqbinslow  = header.moduleHeader.loEdges;
+        freqbinshigh  = header.moduleHeader.hiEdges;
+        for i=1:length(freqbinslow)
+            freqbins(i) = freqbinslow(i) + (freqbinshigh(i)-freqbinslow(i))/2;
+        end
+        metadata.freqbins =  freqbins;
+        metadata.freqbinslow = freqbinslow; 
+        metadata.freqbinshigh = freqbinshigh; 
+end
+
+%add time bins to summary data
+summarydat = [(timebins(1:end-1)+timebinnum)'; timebinnum]; %center of time bins
 
 % end
 

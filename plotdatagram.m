@@ -22,11 +22,16 @@ end
 sR= metadata.sR;
 minmaxtime = metadata.minmaxtime; 
 
-timebins=linspace(minmaxtime(1), minmaxtime(2), length(datagram(1,:))); 
+timebins  = linspace(minmaxtime(1), minmaxtime(2), length(datagram(1,:)));
+if (isempty(metadata.freqbins))
+    freqbins  = linspace(0, sR/2, length(datagram(:,1)));
+else
+    freqbins=metadata.freqbins;
+end
 
 [X, Y] = meshgrid(...
     timebins,...
-    linspace(0, sR/2, length(datagram(:,1))));
+    freqbins);
 
 if usekHz
     Y=Y./1000;
@@ -97,7 +102,8 @@ xlabel('Time')
 datetick x
 xlim([minmaxtime(1), minmaxtime(2)])
 
-freqlimits=[0, sR/2];
+freqlimits=[0, max(freqbins)];
+
 if usekHz
     freqlimits=freqlimits/1000.;
 end
