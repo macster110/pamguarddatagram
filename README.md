@@ -52,3 +52,6 @@ Each datagram also has an associated _ _summarydata_ _ variable. This holds besp
 
 ## Versions
 Version 1 - 05/05/2020 first release. Only enabled for Whistles and Clicks. Noise band monitor coming soon. 
+
+Version 1.1 - 07/05/2020 first release. Added noise datagram. Datatype = 3; 
+
