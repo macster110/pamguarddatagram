@@ -18,7 +18,8 @@ There are two inputs to the datagram folder; a path to the binary file folder an
 
 - 1 -> Click detections from the Click Detector Module.
 - 2 -> Whistle and Moan detections from the Whistle and Moan detector Module. 
-- 3 -> Noise Band monitor (TODO).
+- 3 -> Noise Band monitor
+- 4 -> LTSA (TODO)
 
 ## Example code 
 
@@ -51,7 +52,7 @@ A whistle datagram calculated using pamguardDatagram: this is the same data as t
 Each datagram also has an associated _ _summarydata_ _ variable. This holds bespoke metrics for each datagram bin. For example a click datagram has the number of classified and unclassified clicks and recieved amplitude distributions. The descriptions of the data contained in _ _summarydata_ _ can be found in the _ _metadata_ _ output. 
 
 ## Versions
-Version 1 - 05/05/2020 first release. Only enabled for Whistles and Clicks. Noise band monitor coming soon. 
-
 Version 1.1 - 07/05/2020 first release. Added noise datagram. Datatype = 3; 
+
+Version 1 - 05/05/2020 first release. Only enabled for Whistles and Clicks. Noise band monitor coming soon. 
 
