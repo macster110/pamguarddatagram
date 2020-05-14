@@ -14,14 +14,14 @@ function [datagram, summarydat, metadata] = loaddatagram(folder, datatype, varar
 %       Note that this assumes an FFT length of 1024 samples. This can be
 %       changed by 'FFTLength' argument using VARARGIN.
 % * 3 - Noise Band monitor detections.
-% 
+%
 %  [DATAGRAM, SUMMARYDATA] = LOADDATAGRAM(FOLDER,DATATYPE, VARARGIN) allows
 %  additional inpout arguments via VARARGIN. Arguments are:
 %
 % * 'FFTLength' - the fft length in samples (required for datatype == 2).
-%   Default is 1024; 
+%   Default is 1024;
 % * 'TimeBin' - the time bin in seconds for one datagram line. The default is 60
-%   seconds 
+%   seconds
 % * 'FileMask' - a custom file mask if more than one of the same module is
 %   used. If this is the case then the unique name of data units for one
 %   module is required e.g. 'WhistlesMoans_Moan_Detector_Contours_*'
@@ -29,7 +29,8 @@ function [datagram, summarydat, metadata] = loaddatagram(folder, datatype, varar
 
 timebin = 60; %the time bin in seconds
 fftLength = 1024; %the fft length
-filemaskoverride= []; % overrides the default fuilemask if not empty. 
+filemaskoverride= []; % overrides the default fuilemask if not empty.
+savefile=[]; %saves data contiously to a .mat file. 
 
 iArg = 0;
 while iArg < numel(varargin)
@@ -44,6 +45,9 @@ while iArg < numel(varargin)
         case 'FileMask'
             iArg = iArg + 1;
             filemaskoverride = varargin{iArg};
+        case 'SaveFile'
+            iArg = iArg + 1;
+            savefile = varargin{iArg};
     end
 end
 
@@ -67,9 +71,9 @@ switch (datatype)
         filemask='Noise_Band_*.pgdf';
 end
 
-%custom file mask if the same modules are used 
+%custom file mask if the same modules are used
 if (~isempty(filemaskoverride))
-   filemask = filemaskoverride; 
+    filemask = filemaskoverride;
 end
 
 disp('Counting PAMGuard binary files and loading names...');
@@ -92,11 +96,11 @@ if (isempty(d))
     datagram=[];
     summarydat=[];
     metadata.minmaxtime=[];
-    return; 
+    return;
 end
 
 
-% figure out the fiel start times
+% figure out the file start times
 filestarttimes = zeros(length(d), 1);
 for i = 1:numel(d)
     %      fprintf('Loading %s\n', d(i).name);
@@ -116,7 +120,7 @@ for i = 1:numel(d)
             dates = [pgdata.date];
             lastfileunit =  max(dates);
         else
-            lastfileunit = max(filestarttimes); 
+            lastfileunit = max(filestarttimes);
         end
     end
 end
@@ -132,13 +136,26 @@ timebinnum = timebin/60/60/24; % the time bin in days arather than seconds
 timebins=startime:timebinnum:endtime;
 
 %KEY ASSUMPTION HERE - BINARY FILES ARE IN SEQUENTIAL ORDER
-[pgdata, ~] = loadPamguardBinaryFile(d(1).name);
-currnetfileN = 1;
-%the times in datenum
-times = [pgdata.date];
 
-% true untill the first successful datagram line is created. 
-newdatagram= true; 
+%find first non empty file
+pgdata=[];
+currnetfileN=1;
+while isempty(pgdata)
+    [pgdata, ~] = loadPamguardBinaryFile(d(currnetfileN).name);
+    currnetfileN = currnetfileN+1;
+end
+
+try
+    %the times in datenum
+    times = [pgdata.date];
+catch e
+    disp(e)
+    pgdata
+    return
+end
+
+% true untill the first successful datagram line is created.
+newdatagram= true;
 
 for i=1:length(timebins)-1
     timebinunits=[];
@@ -156,9 +173,10 @@ for i=1:length(timebins)-1
         
         disp(['Loading PG file: ' name]);
         
-        [pgdata, ~] = loadPamguardBinaryFile(d(currnetfileN).name);
-        
         try
+            
+            [pgdata, ~] = loadPamguardBinaryFile(d(currnetfileN).name);
+            
             if (~isempty(pgdata))
                 times = [pgdata.date];
                 
@@ -184,8 +202,8 @@ for i=1:length(timebins)-1
         [adatagram, asummarydat, metadata]= getdatagramlin(timebinunits);
         if (~isempty(adatagram))
             % pre allocate the arrays for speed once we know the sizes to use.
-            datagram=nan(length(adatagram), length(timebins));
-            summarydat=zeros(length(timebins), length(asummarydat));
+            datagram=nan(length(adatagram), length(timebins)-1);
+            summarydat=zeros(length(timebins)-1, length(asummarydat));
             newdatagram = false;
         end
     else
@@ -193,23 +211,36 @@ for i=1:length(timebins)-1
         [adatagram, asummarydat]= getdatagramlin(timebinunits);
     end
     
+%     asummarydat
     if (~isempty(adatagram))
-        % get the datagram line and the sumamry data.
-        % if empty should be zeros
-        datagram(:,i) = adatagram;
-        summarydat(i,:)= asummarydat;
+        % get the datagram line and the summary data.
+        % if empty should be zeros.
+        %Try to pre empt mistakes 
+        if (iscolumn(adatagram))
+            datagram(:,i) = adatagram(:,1);
+            summarydat(i,:)= asummarydat(1,:);
+        else
+            % in case someone makes a mistake in their dataline function
+            datagram(:,i) = adatagram(1,:);
+            summarydat(i,:)= asummarydat(:,1);
+        end
+    end
+    
+    if (mod(i,50)==0 && ~isempty(savefile))
+        %save the file
+        save(savefile,'datagram','summarydat')
     end
     
 end
 
 minmaxtime = [startime, endtime];
 
-%add to meta data. 
+%add to meta data.
 metadata.minmaxtime = minmaxtime;
 metadata.datatype = datatype;
 metadata.freqbins = []; %definet he frequency bins if they are not evenly distributed between 0 and sR
 
-% add any additonal data metadata 
+% add any additonal data metadata
 switch (datatype)
     case 1
         % Clicks
@@ -217,7 +248,7 @@ switch (datatype)
         % Whistles
     case 3
         % Noise band monitor
-        %load up header to get frequency bins. 
+        %load up header to get frequency bins.
         [~, header]= loadPamguardBinaryFile(d(1).name);
         freqbinslow  = header.moduleHeader.loEdges;
         freqbinshigh  = header.moduleHeader.hiEdges;
@@ -225,12 +256,14 @@ switch (datatype)
             freqbins(i) = freqbinslow(i) + (freqbinshigh(i)-freqbinslow(i))/2;
         end
         metadata.freqbins =  freqbins;
-        metadata.freqbinslow = freqbinslow; 
-        metadata.freqbinshigh = freqbinshigh; 
+        metadata.freqbinslow = freqbinslow;
+        metadata.freqbinshigh = freqbinshigh;
 end
 
 %add time bins to summary data
-summarydat = [(timebins(1:end-1)+timebinnum)'; timebinnum]; %center of time bins
+times=(timebins(1:end-1)+timebinnum)';
+
+summarydat = [times summarydat]; %center of time bins
 
 % end
 

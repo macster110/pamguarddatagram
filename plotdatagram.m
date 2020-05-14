@@ -1,10 +1,11 @@
-function [s, c] = plotdatagram(datagram, metadata, varargin)
+function [s, c, datagram] = plotdatagram(datagram, metadata, varargin)
 %PLOTDATAGRAM Plots a datagram
 %   S = PLOTDATAGRAM(DATAGRAM, SR) plots a DATAGRAM on frequency time
 %   surface. METADAta contain info on the datagram. 
 
-usekHz= true;
-maxsurfacesize = 5000; 
+usekHz= true; % use kHz 
+maxsurfacesize = 200000; 
+zeroisNan = true; % zero values should be coloured as NaN values
 
 iArg = 0;
 while iArg < numel(varargin)
@@ -16,6 +17,9 @@ while iArg < numel(varargin)
         case 'MaxSurfaceSize'
              iArg = iArg + 1;
             usekHz = varargin{iArg};
+        case '0isNaN'
+             iArg = iArg + 1;
+            zeroisNan = varargin{iArg};
     end
 end
 
@@ -115,7 +119,9 @@ c.Label.String = metadata.datagramname;
 view([0,90])
 
 cmap =  colormap('Jet'); 
+if (zeroisNan)
 cmap(1,:) = [1, 1, 1]; % white
+end
 colormap(cmap);
 
 end
