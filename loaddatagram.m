@@ -150,12 +150,13 @@ try
     times = [pgdata.date];
 catch e
     disp(e)
-    pgdata
     return
 end
 
 % true untill the first successful datagram line is created.
 newdatagram= true;
+summarydat=[]; 
+datagram=[]; 
 
 for i=1:length(timebins)-1
     timebinunits=[];
@@ -221,7 +222,7 @@ for i=1:length(timebins)-1
             summarydat(i,:)= asummarydat(1,:);
         else
             % in case someone makes a mistake in their dataline function
-            datagram(:,i) = adatagram(1,:);
+            datagram(1:length(adatagram(1,:)),i) = adatagram(1,:);
             summarydat(i,:)= asummarydat(:,1);
         end
     end
@@ -265,5 +266,5 @@ times=(timebins(1:end-1)+timebinnum)';
 
 summarydat = [times summarydat]; %center of time bins
 
-% end
+end
 
