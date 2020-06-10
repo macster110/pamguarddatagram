@@ -127,7 +127,8 @@ if (plotsurf)
     end
     
     xlabel('Time')
-    datetick x
+%         datetick x
+
     xlim([minmaxtime(1), minmaxtime(2)])
     
     freqlimits=[0, max(freqbins)];

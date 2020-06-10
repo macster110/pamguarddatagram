@@ -1,4 +1,4 @@
-function [s, poldatagramsurf] = polarplotdatagram(datagram, metadata, varargin)
+function [s, poldatagramsurf, hLeg] = polarplotdatagram(datagram, metadata, varargin)
 %POLARPLOTDATAGRAM Plots the datagram as a year polar plot.
 %Developed by Michael Ladegaard, Aarhus University, Denmark, 2020. 
 %
@@ -185,7 +185,7 @@ c.Label.String = metadata.datagramname;
 % htit.FontWeight = 'bold' ;
 % htit.Interpreter = 'none' ;
 %
-% % Remove unnecessary axes elements
+% % % Remove unnecessary axes elements
 hax = gca ;
 hax.Visible = 'off' ;
 %

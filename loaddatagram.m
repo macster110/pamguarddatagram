@@ -69,6 +69,10 @@ switch (datatype)
         % Noise band monitor
         getdatagramlin = @(x) noisedatagramline(x);
         filemask='Noise_Band_*.pgdf';
+    case 4
+        % LTSA
+        getdatagramlin = @(x) ltsadatagram(x);
+        filemask='LTSA_*.pgdf';
 end
 
 %custom file mask if the same modules are used
@@ -210,6 +214,7 @@ for i=1:length(timebins)-1
     else
         % get the datagram line and the sumamry data.
         [adatagram, asummarydat]= getdatagramlin(timebinunits);
+        asummarydat
     end
     
 %     asummarydat
@@ -219,12 +224,11 @@ for i=1:length(timebins)-1
         %Try to pre empt mistakes 
         if (iscolumn(adatagram))
             datagram(:,i) = adatagram(:,1);
-            summarydat(i,:)= asummarydat(1,:);
         else
             % in case someone makes a mistake in their dataline function
             datagram(1:length(adatagram(1,:)),i) = adatagram(1,:);
-            summarydat(i,:)= asummarydat(:,1);
         end
+        summarydat(i,:)= asummarydat(1,:);
     end
     
     if (mod(i,50)==0 && ~isempty(savefile))
