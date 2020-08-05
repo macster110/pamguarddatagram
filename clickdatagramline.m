@@ -1,12 +1,14 @@
 function [datagramline,summarydata, metadata] = clickdatagramline(clicks)
 %CLICKDATAGRAMLINE Creates a datagram line and summary data of a group of
 %clicks.
-%   [DATAGRAMLINE,SUMMARYDATA] = CLICKDATAGRAMLINE(CLICKS, DATABIN)
+%   [DATAGRAMLINE,SUMMARYDATA, METADATA] = CLICKDATAGRAMLINE(CLICKS)
 %   generates datagram and summary information on a group of clicks.
 %   DATAGRAM is the line for a datgram and in the case of clicks is an
 %   average 256 point spectrum of all CLICKS. SUMMARYDATA returns the
 %   number of unclassified and classified clicks in a bin and the mean,
-%   median, std of recieved amplitude in linear units (-1 to 1).
+%   median, std of recieved amplitude in linear units (-1 to 1). METADATA
+%   holds metadata on the datagram line such as it's name, and twhat
+%   SUMMARYDATA variables are.
 
 fftsize = 256;
 

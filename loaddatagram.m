@@ -25,12 +25,15 @@ function [datagram, summarydat, metadata] = loaddatagram(folder, datatype, varar
 % * 'FileMask' - a custom file mask if more than one of the same module is
 %   used. If this is the case then the unique name of data units for one
 %   module is required e.g. 'WhistlesMoans_Moan_Detector_Contours_*'
-
+% * 'DetectionFilter' - a custom filter for the datagram. This is a
+%   function handle of the form INDEX = DETFILTER(DATAUNITS) where index is
+%   the DATAUNITS in a a datgram bin to keep.  
 
 timebin = 60; %the time bin in seconds
 fftLength = 1024; %the fft length
 filemaskoverride= []; % overrides the default fuilemask if not empty.
 savefile=[]; %saves data contiously to a .mat file. 
+detfilter=[]; % the detection filter function. 
 
 iArg = 0;
 while iArg < numel(varargin)
@@ -48,6 +51,9 @@ while iArg < numel(varargin)
         case 'SaveFile'
             iArg = iArg + 1;
             savefile = varargin{iArg};
+        case 'DetectionFilter'
+            iArg = iArg + 1;
+            detfilter = varargin{iArg};
     end
 end
 
@@ -73,6 +79,10 @@ switch (datatype)
         % LTSA
         getdatagramlin = @(x) ltsadatagram(x);
         filemask='LTSA_*.pgdf';
+    case 5
+        % Clips
+        getdatagramlin = @(x) clipdatagramline(x);
+        filemask='Clip_Generator_*.pgdf';
 end
 
 %custom file mask if the same modules are used
@@ -193,12 +203,25 @@ for i=1:length(timebins)-1
                 %the switch and simply return a timebin with no data.
                 timebinunits = [timebinunits pgdata(index)];
             end
+            
         catch e
             disp(e)
         end
     end
     
     disp(['Loading datagram: ' num2str(100*i/length(timebins)) '%' ' No. data units: ' num2str(length(timebinunits))]);
+    
+    if (~isempty(timebinunits) && ~isempty(detfilter))
+        
+        % further filter the data if ther eis a function
+        index = detfilter(timebinunits); 
+        
+        if (isempty(index))
+            timebinunits=[]; 
+        else 
+            timebinunits = timebinunits(index); 
+        end
+    end
     
     %pre allocate the arrays on the first iteration for speed
     if (newdatagram)
@@ -214,7 +237,6 @@ for i=1:length(timebins)-1
     else
         % get the datagram line and the sumamry data.
         [adatagram, asummarydat]= getdatagramlin(timebinunits);
-        asummarydat
     end
     
 %     asummarydat

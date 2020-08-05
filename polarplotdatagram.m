@@ -1,6 +1,6 @@
-function [s, poldatagramsurf, hLeg] = polarplotdatagram(datagram, metadata, varargin)
+function [s, poldatagramsurf, hLeg, c] = polarplotdatagram(datagram, metadata, varargin)
 %POLARPLOTDATAGRAM Plots the datagram as a year polar plot.
-%Developed by Michael Ladegaard, Aarhus University, Denmark, 2020. 
+%Developed by Michael Ladegaard, Aarhus University, Denmark, 2020.
 %
 %   [S, PLOTDATAGRAMSURF] = POLARPLOTDATAGRAM(DATAGRAM, METADATA) plots a
 %   DATAGRAM with associated METADATA on a polar plot which represents one
@@ -9,15 +9,13 @@ function [s, poldatagramsurf, hLeg] = polarplotdatagram(datagram, metadata, vara
 %   [S, PLOTDATAGRAMSURF] = POLARPLOTDATAGRAM(DATAGRAM, METADATA VARARGIN)
 %   allows the specification of extra argumetns. These are:
 %%
-% 
+%
 % * 'useKHz' - use kHz on tick labels instead of Hz
-% * 'FrequencyLabels' - the frequency labels for tick marks. 
-% * 'TickColor' - a three element array for the tick mark colour. 
+% * 'FrequencyLabels' - the frequency labels for tick marks.
+% * 'TickColor' - a three element array for the tick mark colour.
 % * 'TickLineWidth' - the line width of ticks
 % * ''MaxSurfaceSize' - the maximum surface size before inteprolation is
-% allowed. 
-
-
+% allowed.
 
 % plot options
 tickcol = [0.8 0.8 0.8]; %the tick colour.
@@ -25,12 +23,16 @@ ticklinewidth = 1.5; % the tick label width
 nfreqticks = 5; % the number of frequency clicks.
 labelFc = []; % the frequency labels in Hz
 useKhz = false; % true to plot kHz instead of Hz.
-maxsurfacesize = []; % maxsurface size
+maxsurfacesize = 20000; % maxsurface size
+uselogfreq= true; % use a logarithmic frequency scale.
 
 iArg = 0;
 while iArg < numel(varargin)
     iArg = iArg + 1;
     switch(varargin{iArg})
+        case 'LogFreq'
+            iArg = iArg + 1;
+            uselogfreq = varargin{iArg};
         case 'useKhz'
             iArg = iArg + 1;
             useKhz = varargin{iArg};
@@ -60,6 +62,9 @@ else
         while (length(labelFc)>10)
             labelFc=labelFc(1:2:end);
         end
+        if (labelFc(end)~=freqbins(end))
+            labelFc=[labelFc freqbins(end)];
+        end
     end
 end
 
@@ -70,10 +75,17 @@ end
 
 % auto create the frequency label
 if isempty(labelFc)
-    %figure ut exacty the
-    labelFc = [0.01 0.02 0.04 0.08 0.16 0.32 0.64 1]*sR/2;
+    if (uselogfreq)
+        %equally spaced tick marks on a log scale
+        labelFc = [0.01 0.02 0.04 0.08 0.16 0.32 0.64 1]*sR/2;
+    else
+        labelFc = linspace(0, sR/2, 8)+sR/4;
+    end
     %     labelFc = [20 40 81 162 325 750 1500] ;
 end
+
+
+
 
 %calculate the interpolated datagram data
 if (~isempty(maxsurfacesize))
@@ -97,9 +109,21 @@ doy = doy / max([365 max(doy)]) ; % scale by 365 days or 366 if it is a leap yea
 theta = doy*2*pi- pi/2;
 
 % plot the polar plot
-[THETA,logFc] = meshgrid(theta,log10(freqBinEdges));
-[XX,YY] = pol2cart(THETA,logFc);
-s = surf(XX,YY,datagram,'edgecolor','none');
+if (uselogfreq)
+    [THETA,freqFc] = meshgrid(theta,log10(freqBinEdges));
+else
+    %add sR/4  so that the start of the surface is not the center of the
+    %circle. Want a polar plot which is a ring. Ok for log becuase log
+    %scale starts at 1 and not 0.
+    freqBinEdges=freqBinEdges+sR/4;
+    [THETA,freqFc] = meshgrid(theta,freqBinEdges);
+end
+
+[XX,YY] = pol2cart(THETA,freqFc);
+% really important to use edgecolour here because otherwise only surface
+% sections of more than one pixel are shown when the plot is view at 0,90.
+% Whether this is a feature or bug in MATLAB, who knows.
+s = surf(XX,YY,datagram,'edgecolor','interp');
 view(0,90)
 hold on
 plot3(XX(:,1),YY(:,1),ones(size(YY(:,1)))*max(max(datagram)),'-','Color',tickcol,...
@@ -122,16 +146,35 @@ for j=labelFc
     for i = 1:max_i
         theta_Fc = linspace(-Fc_ticklength,Fc_ticklength,nfreqticks)*theta_Fc_scale-pi/2*(i*0.5) ;
         %     [THETA2,logFc2] = meshgrid(theta_Fc,ones(size(theta_Fc))*log10(Fc(j)));
-        [XX2,YY2] = pol2cart(theta_Fc,ones(size(theta_Fc))*log10(j));
-        hpFc(k) = plot3(XX2,YY2,ones(size(theta_Fc))*max(max(datagram))+100,...
+        
+        if (uselogfreq)
+            [XX2,YY2] = pol2cart(theta_Fc,ones(size(theta_Fc))*log10(j));
+        else
+            [XX2,YY2] = pol2cart(theta_Fc,ones(size(theta_Fc))*j);
+        end
+        
+        addfact = 10;
+        
+        hpFc(k) = plot3(XX2,YY2,ones(size(theta_Fc))*max(max(datagram))+addfact,...
             '-','Color',FcCol,'LineWidth',ticklinewidth,'HandleVisibility','off') ;
     end
 end
 
-% create the tick labels.
+% create the tick labels for the months
 labelMonth = {'Jan'; 'Feb'; 'Mar'; 'Apr'; 'May'; 'Jun'; 'Jul'; 'Aug'; 'Sep'; 'Oct'; 'Nov'; 'Dec'} ;
-Month_ticklength = 1.5 ; % add scale factor rather than constant to adjust relative to data range
-rho_Month = log10( linspace(labelFc(end),labelFc(end)*Month_ticklength,20) ) ; %
+
+if uselogfreq
+    Month_ticklength = 1.5 ; % add scale factor rather than constant to adjust relative to data range
+else
+    Month_ticklength = 1.06; %linear scale factoris less than the log scale factor
+end
+
+rho_Month =  linspace(freqbins(end),freqbins(end)*Month_ticklength,20); %
+
+if (uselogfreq)
+    rho_Month=log10(rho_Month);
+end
+
 for j=1:12  % months
     mNum = month(ttDailyMedian.Properties.RowTimes(1)) + j ; % find month number for the first month after recording start ;
     if mNum > 12
@@ -142,11 +185,24 @@ for j=1:12  % months
         yNum = datestr(ttDailyMedian.Properties.RowTimes(1)+years(1),'yy') ; % year(ttDailyMedian.Properties.RowTimes(1))
     end
     theta_Month = zeros(size(rho_Month))-pi/2+(mNum-1)*2*pi/12 ;
-    %     [THETA3,logFc3] = meshgrid(theta_Fc,ones(size(theta_Fc))*log10(Fc(j)));
-    [XX3,YY3] = pol2cart(theta_Month,rho_Month);
+    
+    if (uselogfreq)
+        [XX3,YY3] = pol2cart(theta_Month,rho_Month);
+    else
+        [XX3,YY3] = pol2cart(theta_Month,rho_Month*1.5);
+    end
+    
     plot3(XX3,YY3,ones(size(rho_Month))*max(max(datagram)),'-','Color',tickcol,'LineWidth',1.5,'HandleVisibility','off')
     hold on
-    [XX4,YY4] = pol2cart(theta_Month(1),log10(labelFc(end)*Month_ticklength*1.7));
+    
+    
+    % the positoon of text...
+    if (uselogfreq)
+        [XX4,YY4] = pol2cart(theta_Month(1),log10(freqbins(end)*Month_ticklength*1.5));
+    else
+        [XX4,YY4] = pol2cart(theta_Month(1),freqbins(end)*Month_ticklength*1.6);
+    end
+    
     htext(mNum) = text(XX4,YY4,max(max(datagram)),join([labelMonth{mNum}," '",yNum],''),'FontSize',9) ;
 end
 for j=[1,7]
@@ -165,7 +221,15 @@ if (useKhz)
 else
     unitLabel = 'Hz';
 end
-hLeg = legend(hpFc, join([string(round(labelFc, 3, 'significant'))',repmat(unitLabel,length(labelFc), 1)])') ;
+
+if (uselogfreq)
+    textlabel=labelFc;
+else
+    % tet needs to show the correct frequencies- not the scaled frequencies
+    % used for making a nicer looking polar plot.
+    textlabel =  labelFc-sR/4;
+end
+hLeg = legend(hpFc, join([string(round(textlabel, 3, 'significant'))',repmat(unitLabel,length(labelFc), 1)])') ;
 hLeg.Color = 'none' ;
 
 c = colorbar('Location', 'northoutside');
@@ -194,7 +258,7 @@ hax.Visible = 'off' ;
 % plora surface data
 poldatagramsurf.X = XX;
 poldatagramsurf.Y = YY;
-poldatagramsurf.datagram = datagram;
+poldatagramsurf.datagram = datagramplt.datagram;
 
 end
 

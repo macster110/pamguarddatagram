@@ -11,11 +11,10 @@ end
 
 
 if nargout >= 3
-    metadata.datagramname = 'Median Noise Band Energy (dB re 1uPa)';
+    metadata.datagramname = 'Median Noise Band Energy (dB re 1\muPa)';
     metadata.units =  'ANSI S1.11-2004 American National Standard Specification for Octave-Band and Fractional-Octave-Band Analog and Digital Filters.';
     metadata.summarydatanames = ''; 
 end
-
 
 nbands = noisedatas(1).nBands;
 datalinesmean = zeros(length(noisedatas), nbands);

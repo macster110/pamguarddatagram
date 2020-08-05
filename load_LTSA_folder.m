@@ -208,7 +208,7 @@ if (plotLTSA)
     c=colorbar('northoutside');
     c.Label.FontSize = 12;
     c.Label.Interpreter='tex';
-    c.Label.String = 'dB re 1\muPa /Hz';
+    c.Label.String = 'dB re 1\muPa / \surdHz';
     
 end
 end

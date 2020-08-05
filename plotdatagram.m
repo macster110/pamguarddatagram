@@ -118,7 +118,7 @@ end
 
 
 if (plotsurf)
-    s = surf(X, Y, datagram, 'EdgeColor', 'none');
+    s = surf(X, Y, datagram, 'EdgeColor', 'interp');
     
     if (usekHz)
         ylabel('Frequency (kHz)')
@@ -138,7 +138,7 @@ if (plotsurf)
     end
     ylim(freqlimits);
     
-    colormap Jet
+%     colormap Jet
     c = colorbar;
     c.Label.String = metadata.datagramname;
     view([0,90])
