@@ -19,7 +19,7 @@ There are two inputs to the datagram folder; a path to the binary file folder an
 - 1 -> Click detections from the Click Detector Module.
 - 2 -> Whistle and Moan detections from the Whistle and Moan detector Module. 
 - 3 -> Noise Band monitor
-- 4 -> LTSA (TODO)
+- 4 -> LTSA
 
 ## Example code 
 
