@@ -14,6 +14,8 @@ function [datagram, summarydat, metadata] = loaddatagram(folder, datatype, varar
 %       Note that this assumes an FFT length of 1024 samples. This can be
 %       changed by 'FFTLength' argument using VARARGIN.
 % * 3 - Noise Band monitor detections.
+% * 4 - Long term spectral average data form the LTSA module. 
+% * 5 - Clip data from the clip module.
 %
 %  [DATAGRAM, SUMMARYDATA] = LOADDATAGRAM(FOLDER,DATATYPE, VARARGIN) allows
 %  additional inpout arguments via VARARGIN. Arguments are:
@@ -27,14 +29,14 @@ function [datagram, summarydat, metadata] = loaddatagram(folder, datatype, varar
 %   module is required e.g. 'WhistlesMoans_Moan_Detector_Contours_*'
 % * 'DetectionFilter' - a custom filter for the datagram. This is a
 %   function handle of the form INDEX = DETFILTER(DATAUNITS) where index is
-%   the DATAUNITS in a a datgram bin to keep.  
+%   the DATAUNITS in a a datgram bin to keep.
 
 timebin = 60; %the time bin in seconds
 fftLength = 1024; %the fft length
 filemaskoverride= []; % overrides the default fuilemask if not empty.
-savefile=[]; %saves data contiously to a .mat file. 
-detfilter=[]; % the detection filter function. 
-
+savefile=[]; %saves data contiously to a .mat file.
+detfilter=[]; % the detection filter function.
+timelims = [-inf, inf];  % no time lims;
 iArg = 0;
 while iArg < numel(varargin)
     iArg = iArg + 1;
@@ -54,6 +56,9 @@ while iArg < numel(varargin)
         case 'DetectionFilter'
             iArg = iArg + 1;
             detfilter = varargin{iArg};
+        case 'TimeLims'
+            iArg = iArg + 1;
+            timelims = varargin{iArg};
     end
 end
 
@@ -63,25 +68,25 @@ filerejectmask=[];
 switch (datatype)
     case 1
         % Clicks
-        getdatagramlin = @(x) clickdatagramline(x);
+        getdatagramlin = @(x, y) clickdatagramline(x, y);
         filemask='Click_Detector_*.pgdf';
         filerejectmask ='Trigger';
     case 2
         % Whistles and Moans
         % Note: requires an FfftLength
-        getdatagramlin = @(x) whistledatagramline(x, fftLength);
+        getdatagramlin = @(x, y) whistledatagramline(x, y, fftLength);
         filemask='WhistlesMoans_*.pgdf';
     case 3
         % Noise band monitor
-        getdatagramlin = @(x) noisedatagramline(x);
+        getdatagramlin = @(x, y) noisedatagramline(x, y);
         filemask='Noise_Band_*.pgdf';
     case 4
         % LTSA
-        getdatagramlin = @(x) ltsadatagram(x);
+        getdatagramlin = @(x, y) ltsadatagramline(x, y);
         filemask='LTSA_*.pgdf';
     case 5
         % Clips
-        getdatagramlin = @(x) clipdatagramline(x);
+        getdatagramlin = @(x, y) clipdatagramline(x, y);
         filemask='Clip_Generator_*.pgdf';
 end
 
@@ -116,32 +121,52 @@ end
 
 % figure out the file start times
 filestarttimes = zeros(length(d), 1);
+lastfileunit=[];
 for i = 1:numel(d)
     %      fprintf('Loading %s\n', d(i).name);
-    
-    fid = fopen(d(i).name, 'r', 'ieee-be.l64');
-    header = readFileHeader(fid, false);
-    fclose(fid);
-    
-    filestarttimes(i)=header.dataDate;
-    
-    fprintf('Checking file %d of %d at %s\n', i, numel(d), datestr(filestarttimes(i)));
-    
-    if (i==numel(d))
-        %load the last file to check the final date
-        [pgdata, ~] = loadPamguardBinaryFile(d(i).name);
-        if (~isempty(pgdata))
-            dates = [pgdata.date];
-            lastfileunit =  max(dates);
-        else
-            lastfileunit = max(filestarttimes);
+    try
+        fid = fopen(d(i).name, 'r', 'ieee-be.l64');
+        header = readFileHeader(fid, false);
+        fclose(fid);
+        
+        filestarttimes(i)=header.dataDate;
+        
+        fprintf('Checking file %d of %d at %s\n', i, numel(d), datestr(filestarttimes(i)));
+        
+        if (i==numel(d))
+            %load the last file to check the final date
+            [pgdata, ~] = loadPamguardBinaryFile(d(i).name);
+            if (~isempty(pgdata))
+                dates = [pgdata.date];
+                lastfileunit =  max(dates);
+            else
+                lastfileunit = max(filestarttimes);
+            end
         end
+    catch e
+        disp(e)
     end
 end
 
+fileendtimes = [filestarttimes(2:end) ; (filestarttimes(end) + 1)]; % make up the last end time by adding a day....meh
+%filter by time limits
+index = fileendtimes<timelims(1) | filestarttimes>timelims(2); 
+
+filestarttimes(index)=[]; 
+fileendtimes(index)=[]; 
+d(index)=[]; 
+
+
 % Custom dates go here.
 startime = filestarttimes(1);
-endtime = lastfileunit;
+if (~isempty(lastfileunit) && sum(index)==0)
+    endtime = lastfileunit;
+elseif (sum(index)>0)
+    endtime = fileendtimes(end); 
+else 
+    %in case the last file is corrupt
+    endtime = filestarttimes(end); 
+end
 
 disp(['Loading data between ' datestr(startime) ' and ' datestr(endtime)]);
 
@@ -155,7 +180,7 @@ timebins=startime:timebinnum:endtime;
 pgdata=[];
 currnetfileN=1;
 while isempty(pgdata)
-    [pgdata, ~] = loadPamguardBinaryFile(d(currnetfileN).name);
+    [pgdata, fileinfo] = loadPamguardBinaryFile(d(currnetfileN).name);
     currnetfileN = currnetfileN+1;
 end
 
@@ -169,8 +194,8 @@ end
 
 % true untill the first successful datagram line is created.
 newdatagram= true;
-summarydat=[]; 
-datagram=[]; 
+summarydat=[];
+datagram=[];
 
 for i=1:length(timebins)-1
     timebinunits=[];
@@ -190,7 +215,7 @@ for i=1:length(timebins)-1
         
         try
             
-            [pgdata, ~] = loadPamguardBinaryFile(d(currnetfileN).name);
+            [pgdata, fileinfo] = loadPamguardBinaryFile(d(currnetfileN).name);
             
             if (~isempty(pgdata))
                 times = [pgdata.date];
@@ -214,12 +239,12 @@ for i=1:length(timebins)-1
     if (~isempty(timebinunits) && ~isempty(detfilter))
         
         % further filter the data if ther eis a function
-        index = detfilter(timebinunits); 
+        index = detfilter(timebinunits);
         
         if (isempty(index))
-            timebinunits=[]; 
-        else 
-            timebinunits = timebinunits(index); 
+            timebinunits=[];
+        else
+            timebinunits = timebinunits(index);
         end
     end
     
@@ -227,7 +252,7 @@ for i=1:length(timebins)-1
     if (newdatagram)
         % get the metadata on the first run so that no recalculated all the
         % time.
-        [adatagram, asummarydat, metadata]= getdatagramlin(timebinunits);
+        [adatagram, asummarydat, metadata]= getdatagramlin(timebinunits, fileinfo);
         if (~isempty(adatagram))
             % pre allocate the arrays for speed once we know the sizes to use.
             datagram=nan(length(adatagram), length(timebins)-1);
@@ -236,21 +261,21 @@ for i=1:length(timebins)-1
         end
     else
         % get the datagram line and the sumamry data.
-        [adatagram, asummarydat]= getdatagramlin(timebinunits);
+        [adatagram, asummarydat]= getdatagramlin(timebinunits, fileinfo);
     end
     
-%     asummarydat
+    %     asummarydat
     if (~isempty(adatagram))
         % get the datagram line and the summary data.
         % if empty should be zeros.
-        %Try to pre empt mistakes 
+        %Try to pre empt mistakes
         if (iscolumn(adatagram))
             datagram(:,i) = adatagram(:,1);
         else
             % in case someone makes a mistake in their dataline function
             datagram(1:length(adatagram(1,:)),i) = adatagram(1,:);
         end
-        summarydat(i,:)= asummarydat(1,:);
+        summarydat(i,1:length(asummarydat(1,:)))= asummarydat(1,:);
     end
     
     if (mod(i,50)==0 && ~isempty(savefile))
@@ -291,6 +316,11 @@ end
 times=(timebins(1:end-1)+timebinnum)';
 
 summarydat = [times summarydat]; %center of time bins
+
+%save the file with metadata
+if (~isempty(savefile))
+    save(savefile,'datagram','summarydat', 'metadata')
+end
 
 end
 

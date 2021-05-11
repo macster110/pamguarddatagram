@@ -44,6 +44,7 @@ sR= metadata.sR;
 minmaxtime = metadata.minmaxtime;
 
 timebins  = linspace(minmaxtime(1), minmaxtime(2), length(datagram(1,:)));
+
 if (isempty(metadata.freqbins))
     freqbins  = linspace(0, sR/2, length(datagram(:,1)));
 else
@@ -81,17 +82,17 @@ end
 
 % re interpolate a surface...
 if (length(timebins)>maxsurfacesize)
-    % first remove NAN values if duty cycled
-    indexrmv =[];
-    for i=1:length(datagram(1,:))
-        if sum(~isnan(datagram(:,i)))==0
-            indexrmv = [indexrmv i];
-        end
-    end
-    
-    X(:,indexrmv) = [];
-    Y(:,indexrmv) = [];
-    datagram(:,indexrmv) = [];
+%     % first remove NAN values if duty cycled
+%     indexrmv =[];
+%     for i=1:length(datagram(1,:))
+%         if sum(~isnan(datagram(:,i)))==0
+%             indexrmv = [indexrmv i];
+%         end
+%     end
+%     
+%     X(:,indexrmv) = [];
+%     Y(:,indexrmv) = [];
+%     datagram(:,indexrmv) = [];
     
     %if still too big interpolate. 
 % do not interpoate if noise as this is a log scale and causes all sorts of
@@ -118,6 +119,7 @@ end
 
 
 if (plotsurf)
+
     s = surf(X, Y, datagram, 'EdgeColor', 'interp');
     
     if (usekHz)

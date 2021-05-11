@@ -19,12 +19,19 @@ function [s, poldatagramsurf, hLeg, c] = polarplotdatagram(datagram, metadata, v
 
 % plot options
 tickcol = [0.8 0.8 0.8]; %the tick colour.
-ticklinewidth = 1.5; % the tick label width
+ticklinewidth = 2.5; % the tick label width
 nfreqticks = 5; % the number of frequency clicks.
 labelFc = []; % the frequency labels in Hz
 useKhz = false; % true to plot kHz instead of Hz.
 maxsurfacesize = 20000; % maxsurface size
 uselogfreq= true; % use a logarithmic frequency scale.
+tickfontsize = 9;
+forcecirclemaxdatagram = false; % true to use the maxmum of the datagram to draw the circle.
+
+
+%calculate the frequency bins for the datagram.
+sR= metadata.sR;
+freqoffset = sR/4; 
 
 iArg = 0;
 while iArg < numel(varargin)
@@ -48,11 +55,18 @@ while iArg < numel(varargin)
         case 'MaxSurfaceSize'
             iArg = iArg + 1;
             maxsurfacesize = varargin{iArg};
+        case 'ForceCircleMaxDatagram'
+            %a total hack because low log frequencies result in slighly
+            %miplaced circle
+            iArg = iArg + 1;
+            forcecirclemaxdatagram = varargin{iArg};
+        case 'FreqOffset'
+            iArg = iArg + 1;
+            freqoffset = varargin{iArg};
     end
 end
 
-%calculate the frequency bins for the datagram.
-sR= metadata.sR;
+
 if (isempty(metadata.freqbins))
     freqbins  = linspace(0, sR/2, length(datagram(:,1)));
 else
@@ -79,13 +93,12 @@ if isempty(labelFc)
         %equally spaced tick marks on a log scale
         labelFc = [0.01 0.02 0.04 0.08 0.16 0.32 0.64 1]*sR/2;
     else
-        labelFc = linspace(0, sR/2, 8)+sR/4;
+        labelFc = linspace(0, sR/2, 8)+freqoffset;
     end
     %     labelFc = [20 40 81 162 325 750 1500] ;
+elseif (uselogfreq==false)
+    labelFc=labelFc+freqoffset;
 end
-
-
-
 
 %calculate the interpolated datagram data
 if (~isempty(maxsurfacesize))
@@ -101,7 +114,6 @@ datagram = datagramplt.datagram;
 % put into a time table for easy time calculations.
 ttDailyMedian = timetable(datetime(times, 'ConvertFrom', 'datenum')', datagram');
 freqBinEdges = [freqbins] ; % Hertz, frequency spacing vector
-
 % Polar plot
 doy = day(ttDailyMedian.Properties.RowTimes,'dayofyear') ;
 doy = doy - 1 ; % set January 1st to day 0 ; by dividing with 365 in next line, this ensures that data area from Dec 31st and Jan 1st does not overlap
@@ -115,14 +127,16 @@ else
     %add sR/4  so that the start of the surface is not the center of the
     %circle. Want a polar plot which is a ring. Ok for log becuase log
     %scale starts at 1 and not 0.
-    freqBinEdges=freqBinEdges+sR/4;
+    freqBinEdges=freqBinEdges+freqoffset;
     [THETA,freqFc] = meshgrid(theta,freqBinEdges);
 end
 
-[XX,YY] = pol2cart(THETA,freqFc);
+[XX,YY] = pol2cart(-THETA,freqFc);
 % really important to use edgecolour here because otherwise only surface
 % sections of more than one pixel are shown when the plot is view at 0,90.
 % Whether this is a feature or bug in MATLAB, who knows.
+size(XX)
+size(datagram)
 s = surf(XX,YY,datagram,'edgecolor','interp');
 view(0,90)
 hold on
@@ -131,6 +145,7 @@ plot3(XX(:,1),YY(:,1),ones(size(YY(:,1)))*max(max(datagram)),'-','Color',tickcol
 colormap('Default')
 
 % Centroid frequency tick marks and label
+maxradius = 0;
 k = 0 ;
 Fc_ticklength = 0.02 ;
 for j=labelFc
@@ -148,16 +163,22 @@ for j=labelFc
         %     [THETA2,logFc2] = meshgrid(theta_Fc,ones(size(theta_Fc))*log10(Fc(j)));
         
         if (uselogfreq)
-            [XX2,YY2] = pol2cart(theta_Fc,ones(size(theta_Fc))*log10(j));
+            [XX2,YY2] = pol2cart(-theta_Fc,ones(size(theta_Fc))*log10(j));
         else
-            [XX2,YY2] = pol2cart(theta_Fc,ones(size(theta_Fc))*j);
+            [XX2,YY2] = pol2cart(-theta_Fc,ones(size(theta_Fc))*j);
         end
         
         addfact = 10;
         
+        radius = sqrt(XX2(1)^2+YY2(1)^2);
+        if maxradius<radius
+            maxradius=radius;
+        end
+        
         hpFc(k) = plot3(XX2,YY2,ones(size(theta_Fc))*max(max(datagram))+addfact,...
             '-','Color',FcCol,'LineWidth',ticklinewidth,'HandleVisibility','off') ;
     end
+    
 end
 
 % create the tick labels for the months
@@ -170,11 +191,11 @@ else
 end
 
 rho_Month =  linspace(freqbins(end),freqbins(end)*Month_ticklength,20); %
-
 if (uselogfreq)
     rho_Month=log10(rho_Month);
 end
 
+% months text and ticks
 for j=1:12  % months
     mNum = month(ttDailyMedian.Properties.RowTimes(1)) + j ; % find month number for the first month after recording start ;
     if mNum > 12
@@ -186,24 +207,25 @@ for j=1:12  % months
     end
     theta_Month = zeros(size(rho_Month))-pi/2+(mNum-1)*2*pi/12 ;
     
+    % the tick marks for the text
     if (uselogfreq)
-        [XX3,YY3] = pol2cart(theta_Month,rho_Month);
+        [XX3,YY3] = pol2cart([-theta_Month(1) -theta_Month(1)],[maxradius maxradius*1.07]);
     else
-        [XX3,YY3] = pol2cart(theta_Month,rho_Month*1.5);
+        [XX3,YY3] = pol2cart([-theta_Month(1) -theta_Month(1)],[maxradius maxradius*1.07]);
     end
     
-    plot3(XX3,YY3,ones(size(rho_Month))*max(max(datagram)),'-','Color',tickcol,'LineWidth',1.5,'HandleVisibility','off')
+    plot3(XX3,YY3,ones(2)*max(max(datagram)),'-','Color',tickcol,'LineWidth',1.5,'HandleVisibility','off')
     hold on
     
     
     % the positoon of text...
     if (uselogfreq)
-        [XX4,YY4] = pol2cart(theta_Month(1),log10(freqbins(end)*Month_ticklength*1.5));
+        [XX4,YY4] = pol2cart(-theta_Month(1),maxradius*1.15);
     else
-        [XX4,YY4] = pol2cart(theta_Month(1),freqbins(end)*Month_ticklength*1.6);
+        [XX4,YY4] = pol2cart(-theta_Month(1),maxradius*1.15);
     end
     
-    htext(mNum) = text(XX4,YY4,max(max(datagram)),join([labelMonth{mNum}," '",yNum],''),'FontSize',9) ;
+    htext(mNum) = text(XX4,YY4,max(max(datagram)),join([labelMonth{mNum}," '",yNum],''),'FontSize',tickfontsize) ;
 end
 for j=[1,7]
     htext(j).HorizontalAlignment = 'center' ;
@@ -213,24 +235,40 @@ for j=8:12
     %     htext(j).Position(1)=htext(j).Extent(1)-htext(j).Extent(4) ;
 end
 
-plot_circle(0,0,max(max(YY(~isinf(YY)))), tickcol, ticklinewidth);
-plot_circle(0,0,min(min(YY(~isinf(YY)))), tickcol, ticklinewidth);
-
-if (useKhz)
-    unitLabel = 'kHz';
+% plot_circle(0,0,max(freqBinEdges), tickcol, ticklinewidth, 2*max(max(datagram)));
+if (forcecirclemaxdatagram)
+    plot_circle(0,0,max(max(YY(~isinf(YY)))), tickcol, ticklinewidth, 2*max(max(datagram)));
 else
-    unitLabel = 'Hz';
+    plot_circle(0,0,maxradius, tickcol, ticklinewidth, 2*max(max(datagram)));
 end
 
 if (uselogfreq)
     textlabel=labelFc;
 else
-    % tet needs to show the correct frequencies- not the scaled frequencies
+    % this needs to show the correct frequencies- not the scaled frequencies
     % used for making a nicer looking polar plot.
-    textlabel =  labelFc-sR/4;
+    textlabel =  labelFc-freqoffset;
 end
-hLeg = legend(hpFc, join([string(round(textlabel, 3, 'significant'))',repmat(unitLabel,length(labelFc), 1)])') ;
+
+
+for i=1:length(textlabel)
+    if (textlabel(i)<1000)
+        textlabelstr(i)=string(round(textlabel(i), 3, 'significant'));
+        unitLabelstr(i) = "Hz";
+    else
+        textlabelstr(i)=string(num2str(textlabel(i)/1000, '%.1f'));
+        unitLabelstr(i) = "kHz";
+    end
+    
+end
+
+
+hLeg = legend(hpFc, join([textlabelstr',unitLabelstr']));
 hLeg.Color = 'none' ;
+hLeg.ItemTokenSize = [10 18]; % change the line size in the legend
+% position = hLeg.Position;
+% position(1)=position(1)*1.2;
+% hLeg.Position = position;
 
 c = colorbar('Location', 'northoutside');
 c.Label.String = metadata.datagramname;
