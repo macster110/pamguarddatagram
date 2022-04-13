@@ -33,6 +33,7 @@ function [datagram, summarydat, metadata] = loaddatagram(folder, datatype, varar
 
 timebin = 60; %the time bin in seconds
 fftLength = 1024; %the fft length
+sR = 96000; % the sample rate in samples per second. 
 filemaskoverride= []; % overrides the default fuilemask if not empty.
 savefile=[]; %saves data contiously to a .mat file.
 detfilter=[]; % the detection filter function.
@@ -44,6 +45,9 @@ while iArg < numel(varargin)
         case 'FFTLength'
             iArg = iArg + 1;
             fftLength = varargin{iArg};
+        case 'SampleRate'
+            iArg = iArg + 1;
+            sR = varargin{iArg};
         case 'TimeBin'
             iArg = iArg + 1;
             timebin = varargin{iArg};
@@ -63,6 +67,7 @@ while iArg < numel(varargin)
 end
 
 
+filetypestring = '';
 filerejectmask=[];
 % define the correct data function.
 switch (datatype)
@@ -71,23 +76,28 @@ switch (datatype)
         getdatagramlin = @(x, y) clickdatagramline(x, y);
         filemask='Click_Detector_*.pgdf';
         filerejectmask ='Trigger';
+        filetypestring = 'click';
     case 2
         % Whistles and Moans
         % Note: requires an FfftLength
-        getdatagramlin = @(x, y) whistledatagramline(x, y, fftLength);
+        getdatagramlin = @(x, y) whistledatagramline(x, y, fftLength, sR);
         filemask='WhistlesMoans_*.pgdf';
+        filetypestring = 'whistles and moan';
     case 3
         % Noise band monitor
         getdatagramlin = @(x, y) noisedatagramline(x, y);
         filemask='Noise_Band_*.pgdf';
+        filetypestring = 'noise band';
     case 4
         % LTSA
         getdatagramlin = @(x, y) ltsadatagramline(x, y);
         filemask='LTSA_*.pgdf';
+        filetypestring = 'LTSA';
     case 5
         % Clips
         getdatagramlin = @(x, y) clipdatagramline(x, y);
         filemask='Clip_Generator_*.pgdf';
+        filetypestring = 'clip';
 end
 
 %custom file mask if the same modules are used
@@ -121,16 +131,22 @@ end
 
 % figure out the file start times
 filestarttimes = zeros(length(d), 1);
+% fileendtimes = zeros(length(d), 1);
+
 lastfileunit=[];
 for i = 1:numel(d)
     %      fprintf('Loading %s\n', d(i).name);
     try
         fid = fopen(d(i).name, 'r', 'ieee-be.l64');
         header = readFileHeader(fid, false);
+
+        %the footer does not contain relaible file end times - maybe in
+        %later version of PG but not earlier ones...
+%         footer = readFileFooter(fid);
         fclose(fid);
         
         filestarttimes(i)=header.dataDate;
-        
+
         fprintf('Checking file %d of %d at %s\n', i, numel(d), datestr(filestarttimes(i)));
         
         if (i==numel(d))
@@ -149,12 +165,32 @@ for i = 1:numel(d)
 end
 
 fileendtimes = [filestarttimes(2:end) ; (filestarttimes(end) + 1)]; % make up the last end time by adding a day....meh
+
 %filter by time limits
+% datestr(filestarttimes)
+datestr(fileendtimes)
 index = fileendtimes<timelims(1) | filestarttimes>timelims(2); 
 
 filestarttimes(index)=[]; 
 fileendtimes(index)=[]; 
 d(index)=[]; 
+
+
+% we have a slight issue here.The file end times are the file start times
+% and this it is assumed that files are concurrent. This is OK for most
+% file but, if the first file is way before the other files then you get a
+% huge datagram with loads of space - this only occurs when the time limits
+% straddle a large break in files..So we need to check the first file and
+% the only way to do that is open it. 
+
+%open the first file
+[pgdata, fileinfo] = loadPamguardBinaryFile(d(1).name);
+
+if (pgdata(end).date<timelims(1))
+    filestarttimes = filestarttimes(2:end);
+    fileendtimes = fileendtimes(2:end);
+    d = d(2:end);
+end
 
 
 % Custom dates go here.
@@ -168,7 +204,7 @@ else
     endtime = filestarttimes(end); 
 end
 
-disp(['Loading data between ' datestr(startime) ' and ' datestr(endtime)]);
+disp(['Loading ' filetypestring ' data between ' datestr(startime) ' and ' datestr(endtime)]);
 
 % now iterate through the files loading up the data units.
 timebinnum = timebin/60/60/24; % the time bin in days arather than seconds
@@ -234,7 +270,9 @@ for i=1:length(timebins)-1
         end
     end
     
-    disp(['Loading datagram: ' num2str(100*i/length(timebins)) '%' ' No. data units: ' num2str(length(timebinunits))]);
+    if (mod(i,10)==0)
+        disp(['Loading datagram: ' filetypestring ' ' num2str(100*i/length(timebins)) '%' ' No. data units: ' num2str(length(timebinunits))]);
+    end
     
     if (~isempty(timebinunits) && ~isempty(detfilter))
         

@@ -1,6 +1,5 @@
  %tets the click dataline
-file = 'F:\Middlefart_PAM\BACKUP_20200220\Middelfart\Binary_WithUID\20180315\Click_Detector_HF_Click_Detector_Clicks_20180315_080000.pgdf'; 
-
-clicks = loadPamguardBinaryFile(file); 
+file = '/Volumes/GoogleDrive-108005893101854397430/My Drive/SMRU_research/Gill nets 2016-20/SoundTraps/st_data/67411977/Binary/20170705/Click_Detector_Click_Detector_Clicks_20170705_190008.pgdf';
+[clicks, moduleinfo] = loadPamguardBinaryFile(file); 
 
 [datagramline,summarydata, metadata] = clickdatagramline(clicks); 

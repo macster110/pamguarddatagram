@@ -15,6 +15,7 @@ if (nargin<4)
     vp2p=2;
 end
 
+
 sR=fileinfo.moduleHeader.fftHop/fileinfo.moduleHeader.intervalSeconds;
 fftlen=fileinfo.moduleHeader.fftLength;
 
