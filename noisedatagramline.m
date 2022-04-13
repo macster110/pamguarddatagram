@@ -21,9 +21,14 @@ nbands = noisedatas(1).nBands;
 datalinesmean = zeros(length(noisedatas), nbands);
 datalinespeak = zeros(length(noisedatas), nbands);
 
+
+
 for i=1:length(noisedatas)
     try
-    for j=1:nbands
+%       disp('------------')
+%       disp(num2str(noisedatas(i).nBands))
+    for j=1:noisedatas(i).nBands
+%         disp(num2str(noisedatas(i).noise(1, j)))
         datalinesmean(i,j) = noisedatas(i).noise(1, j);
         datalinespeak(i,j) = noisedatas(i).noise(2, j);
     end
@@ -33,11 +38,14 @@ for i=1:length(noisedatas)
     end
 end
 
+% pause
 % the median is save here
-datagramline = median(datalinesmean); 
+%Note - it is very important to put the dimensions in here otherwise, for
+%one column of noise data we get one number 
+datagramline = median(datalinesmean, 1); 
 
 % save the peak noise
-summarydata = median(datalinespeak); 
+summarydata = median(datalinespeak,1); 
 
 end
 

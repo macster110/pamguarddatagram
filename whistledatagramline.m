@@ -1,4 +1,4 @@
-function [datagramline, summaryline, metadata] = whistledatagramline(tones, fftLength, sR)
+function [datagramline, summaryline, metadata] = whistledatagramline(tones, fileinfo, fftLength, sR)
 %WHISTLEDATAGRAMLINE calculatesa  datgram line for a group of whisltes.
 %   [DATAGRAMLINE, SUMMARYLINE] = WHISTLEDATAGRAMLINE(TONES, FFTLENGTH, SR)
 %   calculates a datagram line for a group of tonal sounds detected by the

@@ -82,7 +82,7 @@ switch (datatype)
         % Note: requires an FfftLength
         getdatagramlin = @(x, y) whistledatagramline(x, y, fftLength, sR);
         filemask='WhistlesMoans_*.pgdf';
-        filetypestring = 'whistles and moan';
+        filetypestring = 'whistle and moan';
     case 3
         % Noise band monitor
         getdatagramlin = @(x, y) noisedatagramline(x, y);
@@ -147,7 +147,7 @@ for i = 1:numel(d)
         
         filestarttimes(i)=header.dataDate;
 
-        fprintf('Checking file %d of %d at %s\n', i, numel(d), datestr(filestarttimes(i)));
+        fprintf('Checking %s file %d of %d at %s\n', filetypestring, i, numel(d), datestr(filestarttimes(i)));
         
         if (i==numel(d))
             %load the last file to check the final date
@@ -164,12 +164,14 @@ for i = 1:numel(d)
     end
 end
 
+
 fileendtimes = [filestarttimes(2:end) ; (filestarttimes(end) + 1)]; % make up the last end time by adding a day....meh
 
 %filter by time limits
 % datestr(filestarttimes)
-datestr(fileendtimes)
-index = fileendtimes<timelims(1) | filestarttimes>timelims(2); 
+% datestr(fileendtimes)
+index = fileendtimes<timelims(1) | filestarttimes>timelims(2) ...
+    | filestarttimes<datenum('1970-01-01 00:00:00', 'yyyy-mm-dd HH:MM:SS'); 
 
 filestarttimes(index)=[]; 
 fileendtimes(index)=[]; 
@@ -192,6 +194,8 @@ if (pgdata(end).date<timelims(1))
     d = d(2:end);
 end
 
+% datestr(filestarttimes)
+% datestr(fileendtimes)
 
 % Custom dates go here.
 startime = filestarttimes(1);
