@@ -14,7 +14,7 @@ function [datagram, summarydat, metadata] = loaddatagram(folder, datatype, varar
 %       Note that this assumes an FFT length of 1024 samples. This can be
 %       changed by 'FFTLength' argument using VARARGIN.
 % * 3 - Noise Band monitor detections.
-% * 4 - Long term spectral average data form the LTSA module. 
+% * 4 - Long term spectral average data form the LTSA module.
 % * 5 - Clip data from the clip module.
 %
 %  [DATAGRAM, SUMMARYDATA] = LOADDATAGRAM(FOLDER,DATATYPE, VARARGIN) allows
@@ -30,15 +30,25 @@ function [datagram, summarydat, metadata] = loaddatagram(folder, datatype, varar
 % * 'DetectionFilter' - a custom filter for the datagram. This is a
 %   function handle of the form INDEX = DETFILTER(DATAUNITS) where index is
 %   the DATAUNITS in a a datgram bin to keep.
+% * 'Gain' - the gain of the amplifier used in dB
+% * 'vp2p' - the peak to peak voltage in volts of the DAQ system
+% * 'HSens' - the sensitivity of the hydrophone in dB re 1V/uPa
+% * 'CustomString' - adds a custom string to the end of the progress output
+
+
 
 timebin = 60; %the time bin in seconds
 fftLength = 1024; %the fft length
-sR = 96000; % the sample rate in samples per second. 
+sR = 96000; % the sample rate in samples per second.
 filemaskoverride= []; % overrides the default fuilemask if not empty.
 savefile=[]; %saves data contiously to a .mat file.
 detfilter=[]; % the detection filter function.
 timelims = [-inf, inf];  % no time lims;
 iArg = 0;
+customstring =''; % adds some custom output to the progress indicator.
+hsens=-175; %dB re 1V/uPa - default system sensitivity for a SoundTrap;
+gain = 0; %dB - default for a SoundTrap
+vp2p = 2; %V - default for SoundtRAP
 while iArg < numel(varargin)
     iArg = iArg + 1;
     switch(varargin{iArg})
@@ -63,6 +73,18 @@ while iArg < numel(varargin)
         case 'TimeLims'
             iArg = iArg + 1;
             timelims = varargin{iArg};
+        case 'CustomString'
+            iArg = iArg + 1;
+            customstring = varargin{iArg};
+        case 'Gain'
+            iArg = iArg + 1;
+            gain = varargin{iArg};
+        case 'vp2p'
+            iArg = iArg + 1;
+            vp2p = varargin{iArg};
+        case 'HSens'
+            iArg = iArg + 1;
+            hsens = varargin{iArg};
     end
 end
 
@@ -90,7 +112,7 @@ switch (datatype)
         filetypestring = 'noise band';
     case 4
         % LTSA
-        getdatagramlin = @(x, y) ltsadatagramline(x, y);
+        getdatagramlin = @(x, y) ltsadatagramline(x, y, hsens, gain, vp2p);
         filemask='LTSA_*.pgdf';
         filetypestring = 'LTSA';
     case 5
@@ -105,7 +127,7 @@ if (~isempty(filemaskoverride))
     filemask = filemaskoverride;
 end
 
-disp('Counting PAMGuard binary files and loading names...');
+disp(['Counting PAMGuard binary files and loading names...' customstring]);
 
 % first open all the file headers
 d = dirsub(folder, filemask);
@@ -133,7 +155,6 @@ end
 filestarttimes = zeros(length(d), 1);
 % fileendtimes = zeros(length(d), 1);
 
-lastfileunit=[];
 for i = 1:numel(d)
     %      fprintf('Loading %s\n', d(i).name);
     try
@@ -142,23 +163,13 @@ for i = 1:numel(d)
 
         %the footer does not contain relaible file end times - maybe in
         %later version of PG but not earlier ones...
-%         footer = readFileFooter(fid);
+        %         footer = readFileFooter(fid);
         fclose(fid);
-        
+
         filestarttimes(i)=header.dataDate;
 
-        fprintf('Checking %s file %d of %d at %s\n', filetypestring, i, numel(d), datestr(filestarttimes(i)));
-        
-        if (i==numel(d))
-            %load the last file to check the final date
-            [pgdata, ~] = loadPamguardBinaryFile(d(i).name);
-            if (~isempty(pgdata))
-                dates = [pgdata.date];
-                lastfileunit =  max(dates);
-            else
-                lastfileunit = max(filestarttimes);
-            end
-        end
+        fprintf('Checking %s file %d of %d at %s %s\n', filetypestring, i, numel(d), datestr(filestarttimes(i)), customstring);
+
     catch e
         disp(e)
     end
@@ -171,21 +182,22 @@ fileendtimes = [filestarttimes(2:end) ; (filestarttimes(end) + 1)]; % make up th
 % datestr(filestarttimes)
 % datestr(fileendtimes)
 index = fileendtimes<timelims(1) | filestarttimes>timelims(2) ...
-    | filestarttimes<datenum('1970-01-01 00:00:00', 'yyyy-mm-dd HH:MM:SS'); 
+    | filestarttimes<datenum('1970-01-01 00:00:00', 'yyyy-mm-dd HH:MM:SS');
 
-filestarttimes(index)=[]; 
-fileendtimes(index)=[]; 
-d(index)=[]; 
+filestarttimes(index)=[];
+fileendtimes(index)=[];
+d(index)=[];
 
-
+% datestr(filestarttimes)
 % we have a slight issue here.The file end times are the file start times
 % and this it is assumed that files are concurrent. This is OK for most
 % file but, if the first file is way before the other files then you get a
 % huge datagram with loads of space - this only occurs when the time limits
 % straddle a large break in files..So we need to check the first file and
-% the only way to do that is open it. 
+% the only way to do that is open it.
 
-%open the first file
+disp('Check whether first file is needed: ')
+%open the first file to check whether it is actually needed
 [pgdata, fileinfo] = loadPamguardBinaryFile(d(1).name);
 
 if (pgdata(end).date<timelims(1))
@@ -194,21 +206,31 @@ if (pgdata(end).date<timelims(1))
     d = d(2:end);
 end
 
-% datestr(filestarttimes)
-% datestr(fileendtimes)
+disp(['Check last data unit in last file. : ' d(end).name])
+%load te last file to check the final date
+[pgdata, ~] = loadPamguardBinaryFile(d(end).name);
+if (~isempty(pgdata))
+    dates = [pgdata.date];
+    lastfileunit =  max(dates);
+else
+    lastfileunit = max(fileendtimes);
+end
+
+
+datestr(lastfileunit)
 
 % Custom dates go here.
 startime = filestarttimes(1);
-if (~isempty(lastfileunit) && sum(index)==0)
+if (~isempty(lastfileunit))
     endtime = lastfileunit;
-elseif (sum(index)>0)
-    endtime = fileendtimes(end); 
-else 
-    %in case the last file is corrupt
-    endtime = filestarttimes(end); 
+else
+    endtime = fileendtimes(end);
 end
+%     %in case the last file is corrupt
+%     endtime = filestarttimes(end);
+% end
 
-disp(['Loading ' filetypestring ' data between ' datestr(startime) ' and ' datestr(endtime)]);
+disp(['Loading ' filetypestring ' data between ' datestr(startime) ' and ' datestr(endtime) '  ' customstring]);
 
 % now iterate through the files loading up the data units.
 timebinnum = timebin/60/60/24; % the time bin in days arather than seconds
@@ -239,57 +261,58 @@ datagram=[];
 
 for i=1:length(timebins)-1
     timebinunits=[];
-    
+
     % load from current file
     index = times>timebins(i) & times<timebins(i)+timebinnum;
     timebinunits = [timebinunits pgdata(index)];
-    
+
     %check if a new file needs to be loaded.
     while max(times)<timebins(i)+timebinnum && currnetfileN<length(d)
-        
+
         currnetfileN = currnetfileN +1;
-        
+
         [~, name, ~] = fileparts(d(currnetfileN).name);
-        
+
         disp(['Loading PG file: ' name]);
-        
+
         try
-            
+
             [pgdata, fileinfo] = loadPamguardBinaryFile(d(currnetfileN).name);
-            
+
             if (~isempty(pgdata))
                 times = [pgdata.date];
-                
+
                 % load from current file
                 index = times>timebins(i) & times<timebins(i)+timebinnum;
-                
+
                 %If binary format has, for some reason, changed, then there may
                 %be a switch to a slightly different format - this will catch
                 %the switch and simply return a timebin with no data.
                 timebinunits = [timebinunits pgdata(index)];
             end
-            
+
         catch e
             disp(e)
         end
     end
-    
+
     if (mod(i,10)==0)
-        disp(['Loading datagram: ' filetypestring ' ' num2str(100*i/length(timebins)) '%' ' No. data units: ' num2str(length(timebinunits))]);
+        disp(['Loading datagram: ' filetypestring ' ' num2str(100*i/length(timebins)) ...
+            '%' ' No. data units: ' num2str(length(timebinunits)) '  '  customstring]);
     end
-    
+
     if (~isempty(timebinunits) && ~isempty(detfilter))
-        
+
         % further filter the data if ther eis a function
         index = detfilter(timebinunits);
-        
+
         if (isempty(index))
             timebinunits=[];
         else
             timebinunits = timebinunits(index);
         end
     end
-    
+
     %pre allocate the arrays on the first iteration for speed
     if (newdatagram)
         % get the metadata on the first run so that no recalculated all the
@@ -305,7 +328,7 @@ for i=1:length(timebins)-1
         % get the datagram line and the sumamry data.
         [adatagram, asummarydat]= getdatagramlin(timebinunits, fileinfo);
     end
-    
+
     %     asummarydat
     if (~isempty(adatagram))
         % get the datagram line and the summary data.
@@ -319,12 +342,12 @@ for i=1:length(timebins)-1
         end
         summarydat(i,1:length(asummarydat(1,:)))= asummarydat(1,:);
     end
-    
+
     if (mod(i,50)==0 && ~isempty(savefile))
         %save the file
         save(savefile,'datagram','summarydat')
     end
-    
+
 end
 
 minmaxtime = [startime, endtime];
