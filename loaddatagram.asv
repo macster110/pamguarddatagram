@@ -30,11 +30,12 @@ function [datagram, summarydat, metadata] = loaddatagram(folder, datatype, varar
 % * 'DetectionFilter' - a custom filter for the datagram. This is a
 %   function handle of the form INDEX = DETFILTER(DATAUNITS) where index is
 %   the DATAUNITS in a a datgram bin to keep.
-% * 'DetectionFilter' - a custom filter for the datagram. This is a
-%   function handle of the form INDEX = DETFILTER(DATAUNITS) where index is
-%   the DATAUNITS in a a datgram bin to keep.% * 'DetectionFilter' - a custom filter for the datagram. This is a
-%   function handle of the form INDEX = DETFILTER(DATAUNITS) where index is
-%   the DATAUNITS in a a datgram bin to keep.
+% * 'Gain' - the gain of the amplifier used in dB
+% * 'vp2p' - the peak to peak voltage in volts of the DAQ system
+% * 'HSens' - the sensitivity of the hydrophone in dB re 1V/uPa
+% * 'CustomString' - adds a custom string to the end of the progress output
+
+
 
 timebin = 60; %the time bin in seconds
 fftLength = 1024; %the fft length
@@ -180,7 +181,7 @@ fileendtimes = [filestarttimes(2:end) ; (filestarttimes(end) + 1)]; % make up th
 %filter by time limits
 % datestr(filestarttimes)
 % datestr(fileendtimes)
-index = fileendtimes<timelims(1) | filestarttimes>timelims(2) ...
+index = fileendtimes<=timelims(1) | filestarttimes>timelims(2) ...
     | filestarttimes<datenum('1970-01-01 00:00:00', 'yyyy-mm-dd HH:MM:SS');
 
 filestarttimes(index)=[];
@@ -188,6 +189,7 @@ fileendtimes(index)=[];
 d(index)=[];
 
 % datestr(filestarttimes)
+
 % we have a slight issue here.The file end times are the file start times
 % and this it is assumed that files are concurrent. This is OK for most
 % file but, if the first file is way before the other files then you get a

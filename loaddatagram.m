@@ -71,7 +71,7 @@ while iArg < numel(varargin)
             iArg = iArg + 1;
             detfilter = varargin{iArg};
         case 'TimeLims'
-            iArg = iArg + 1;
+            iArg = iArg + 1; 
             timelims = varargin{iArg};
         case 'CustomString'
             iArg = iArg + 1;
@@ -181,7 +181,7 @@ fileendtimes = [filestarttimes(2:end) ; (filestarttimes(end) + 1)]; % make up th
 %filter by time limits
 % datestr(filestarttimes)
 % datestr(fileendtimes)
-index = fileendtimes<timelims(1) | filestarttimes>timelims(2) ...
+index = fileendtimes<=timelims(1) | filestarttimes>timelims(2) ...
     | filestarttimes<datenum('1970-01-01 00:00:00', 'yyyy-mm-dd HH:MM:SS');
 
 filestarttimes(index)=[];
@@ -189,6 +189,7 @@ fileendtimes(index)=[];
 d(index)=[];
 
 % datestr(filestarttimes)
+
 % we have a slight issue here.The file end times are the file start times
 % and this it is assumed that files are concurrent. This is OK for most
 % file but, if the first file is way before the other files then you get a
@@ -219,12 +220,17 @@ end
 
 datestr(lastfileunit)
 
-% Custom dates go here.
-startime = filestarttimes(1);
-if (~isempty(lastfileunit))
-    endtime = lastfileunit;
-else
-    endtime = fileendtimes(end);
+if (isinf(timelims(1)))
+    % No dates set - use binary files as start and end
+    startime = filestarttimes(1);
+    if (~isempty(lastfileunit))
+        endtime = lastfileunit;
+    else
+        endtime = fileendtimes(end);
+    end
+else 
+    startime = timelims(1);
+    endtime = timelims(2);
 end
 %     %in case the last file is corrupt
 %     endtime = filestarttimes(end);
@@ -240,10 +246,10 @@ timebins=startime:timebinnum:endtime;
 
 %find first non empty file
 pgdata=[];
-currnetfileN=1;
+currnetfileN=0; %needs to be zero otherwise first file is missed...
 while isempty(pgdata)
-    [pgdata, fileinfo] = loadPamguardBinaryFile(d(currnetfileN).name);
     currnetfileN = currnetfileN+1;
+    [pgdata, fileinfo] = loadPamguardBinaryFile(d(currnetfileN).name);
 end
 
 try
@@ -254,7 +260,7 @@ catch e
     return
 end
 
-% true untill the first successful datagram line is created.
+% true until the first successful datagram line is created.
 newdatagram= true;
 summarydat=[];
 datagram=[];
@@ -273,7 +279,8 @@ for i=1:length(timebins)-1
 
         [~, name, ~] = fileparts(d(currnetfileN).name);
 
-        disp(['Loading PG file: ' name]);
+        disp(['Loading PG file: ' name '  ' num2str(currnetfileN)]);
+
 
         try
 
