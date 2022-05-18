@@ -143,7 +143,7 @@ if ~isempty(filerejectmask)
 end
 
 if (isempty(d))
-    disp('THERE ARE NO BINARY FILES AT THIS LOCATION? CHECK FILE PATH...');
+    disp(['THERE ARE NO BINARY FILES AT THIS LOCATION? CHECK FILE PATH...' folder]);
     datagram=[];
     summarydat=[];
     metadata.minmaxtime=[];
@@ -197,17 +197,17 @@ d(index)=[];
 % straddle a large break in files..So we need to check the first file and
 % the only way to do that is open it.
 
-disp('Check whether first file is needed: ')
+disp(['Check whether first file is needed: ' d(1).name])
 %open the first file to check whether it is actually needed
 [pgdata, fileinfo] = loadPamguardBinaryFile(d(1).name);
 
-if (pgdata(end).date<timelims(1))
+if (~isempty(pgdata) && pgdata(end).date<timelims(1))
     filestarttimes = filestarttimes(2:end);
     fileendtimes = fileendtimes(2:end);
     d = d(2:end);
 end
 
-disp(['Check last data unit in last file. : ' d(end).name])
+disp(['Check last data unit in last file: ' d(end).name])
 %load te last file to check the final date
 [pgdata, ~] = loadPamguardBinaryFile(d(end).name);
 if (~isempty(pgdata))
@@ -218,7 +218,7 @@ else
 end
 
 
-datestr(lastfileunit)
+% datestr(lastfileunit)
 
 if (isinf(timelims(1)))
     % No dates set - use binary files as start and end

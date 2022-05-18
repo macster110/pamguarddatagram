@@ -21,7 +21,7 @@ fftlen=fileinfo.moduleHeader.fftLength;
 
 
 if nargout >= 3
-    metadata.datagramname = 'Long Term Spectral Average (linear)';
+    metadata.datagramname = 'Long Term Spectral Average (dB re 1uPa/sqrt(Hz))';
     metadata.summarydatnames = {''};
     metadata.sR = sR; 
 end
