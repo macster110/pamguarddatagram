@@ -1,5 +1,5 @@
 % binary data folder
-binaryFolder='D:\Greenland\Tuttulipaluk2016-17\pamguard\binary\'; 
+binaryFolder='K:\Pamguard_narwhal_data\Nuussuaq_KongOscar_ST\Binary_example\'; 
 
 datatype = 3; % the data type 1 for clicks, 2 for whistles. 
 sR = 32768; %sample rate in samples per second. 

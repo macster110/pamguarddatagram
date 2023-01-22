@@ -1,5 +1,6 @@
 % binary data folder
 binaryFolder = 'E:\Google Drive\SMRU_research\Gill nets 2016-20\SoundTrap_4c\20191114_Cornwall_AK627_H3\67170312\Binary\';
+binaryFolder = 'J:\SoundNet\analysis_backup\67411977\Binary/20170707/'; 
 
 % binaryFolder = 'E:\Google Drive\SMRU_research\Gill nets 2016-20\SoundTrap_4c\20190711_Cornwall_AK615_H1\134250533\Binary\'; 
 % binaryFolder='D:\Greenland\Tuttulipaluk2016-17\pamguard\binary\'; 

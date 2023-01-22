@@ -1,5 +1,4 @@
 function [ dB ] = rawamplitudedB( rawAmplitude, vp2p, sens, gain)
-
 %RAWAMPLITUDEDB  Convert a raw amplitude to dB re 1 micropascal based on calibration information held in the AcquisitionController
 % 	 * 
 % 	 * @param rawAmplitude raw amplitude (should be -1 < rawAmplitude < 1)

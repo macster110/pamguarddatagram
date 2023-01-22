@@ -201,7 +201,7 @@ disp(['Check whether first file is needed: ' d(1).name])
 %open the first file to check whether it is actually needed
 [pgdata, fileinfo] = loadPamguardBinaryFile(d(1).name);
 
-if (~isempty(pgdata) && pgdata(end).date<timelims(1))
+if (pgdata(end).date<timelims(1))
     filestarttimes = filestarttimes(2:end);
     fileendtimes = fileendtimes(2:end);
     d = d(2:end);
@@ -218,7 +218,7 @@ else
 end
 
 
-% datestr(lastfileunit)
+datestr(lastfileunit)
 
 if (isinf(timelims(1)))
     % No dates set - use binary files as start and end
@@ -247,15 +247,10 @@ timebins=startime:timebinnum:endtime;
 %find first non empty file
 pgdata=[];
 currnetfileN=0; %needs to be zero otherwise first file is missed...
-while isempty(pgdata) 
+while isempty(pgdata)
     currnetfileN = currnetfileN+1;
+    disp(['Loading PG file: ' d(currnetfileN).name '  ' num2str(currnetfileN)]);
     [pgdata, fileinfo] = loadPamguardBinaryFile(d(currnetfileN).name);
-    if (isempty(pgdata) && currnetfileN==length(d)-1)
-        datagram=[];
-        summarydat=[];
-        metadata.minmaxtime=[];
-        return;
-    end
 end
 
 try
