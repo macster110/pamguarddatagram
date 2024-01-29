@@ -48,7 +48,11 @@ end
 %DO NOT DIVIDE BY THE LENGTH OF CLICKS. 
 datagramline=meanfft;
 
+if (~isempty(clicks))
 types = [clicks.type];
+else
+types =[]; 
+end
 
 %% calculate the summary data
 summarydata(1)  = mean(ppamp);

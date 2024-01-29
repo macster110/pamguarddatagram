@@ -1,9 +1,9 @@
 function [ dB ] = rawamplitudedB( rawAmplitude, vp2p, sens, gain)
-%RAWAMPLITUDEDB  Convert a raw amplitude to dB re 1 micropascal based on calibration information held in the AcquisitionController
-% 	 * 
-% 	 * @param rawAmplitude raw amplitude (should be -1 < rawAmplitude < 1)
-% 	 * @return amplitude in dB re 1 uPa.
-% 	 */
+%RAWAMPLITUDEDB  Convert a raw amplitude to dB re 1 micropascal based on
+% calibration information held in the AcquisitionController
+
+%The raw amplitude should be between 0 and 2 for peak to peak and 0 to 1
+%for RMS measures i.e. 2 is the clip level for peak to peak. 
 
          constantTerm = sens+gain;
          
@@ -15,7 +15,7 @@ function [ dB ] = rawamplitudedB( rawAmplitude, vp2p, sens, gain)
 % 		 * the peak to peak voltage. 
 % 		 */
 
-		 dB = 20 * log10(rawAmplitude * vp2p /2) - constantTerm;
+		 dB = 20 * log10((rawAmplitude /2) * vp2p) - constantTerm;
 
 end
 
